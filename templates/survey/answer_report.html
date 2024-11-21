@@ -54,8 +54,8 @@
         // عرض الخيارات "نعم" و "لا" للأسئلة من نوع Yes/No
         optionsContainer.innerHTML = `
           <div class="text-center mt-4">
-            <button class="btn btn-outline-primary mx-2" data-answer="Yes" onclick="fetchEntities(${questionId}, 'Yes')">نعم</button>
-            <button class="btn btn-outline-secondary mx-2" data-answer="No" onclick="fetchEntities(${questionId}, 'No')">لا</button>
+            <button class="btn btn-outline-primary mx-2" data-answer="yes" onclick="fetchEntities(${questionId}, 'yes')">نعم</button>
+            <button class="btn btn-outline-secondary mx-2" data-answer="no" onclick="fetchEntities(${questionId}, 'no')">لا</button>
           </div>
         `;
       } else {
@@ -129,20 +129,4 @@
       });
   }
 </script>
-<style>
-  .card-header {
-    background-color: #5e84ab;
-  }
-  .btn-primary {
-    background-color: #5e84ab;
-    transition: all 0.3s ease;
-  }
-  .btn-primary:hover {
-    background-color: #4b6282;
-  }
-  .form-select {
-    font-size: 1rem;
-    {% comment %} padding: 0.8rem; {% endcomment %}
-  }
-</style>
 {% endblock %}

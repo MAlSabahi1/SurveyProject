@@ -864,3 +864,4 @@ def get_choices(request, question_id):
     return JsonResponse({
         'choices': [{'id': choice.id, 'text': choice.text} for choice in choices]
     })
+
