@@ -872,3 +872,57 @@ def get_choices(request, question_id):
         'choices': [{'id': choice.id, 'text': choice.text} for choice in choices]
     })
 
+def edit_survey(request, survey_id):
+    survey = get_object_or_404(Surveys, id=survey_id)
+    answers = Answer.objects.filter(survey=survey).select_related('question', 'choice_selected')
+    questions = Question.objects.filter(category=survey.category, is_active=True)
+    entity = survey.entities.first() 
+
+    # عند إرسال النموذج
+    if request.method == 'POST':
+        for question in questions:
+            question_key = f"question_{question.id}"
+
+            # إذا كان السؤال من نوع نص
+            if question.question_type == 'text':
+                answer_text = request.POST.get(question_key, "")
+                Answer.objects.update_or_create(
+                    survey=survey,
+                    question=question,
+                    defaults={"answer_text": answer_text},
+                    entity=entity
+
+                )
+
+            # إذا كان السؤال من نوع نعم/لا
+            elif question.question_type == 'yes_no':
+                answer_text = request.POST.get(question_key, None)
+                if answer_text:
+                    Answer.objects.update_or_create(
+                        survey=survey,
+                        question=question,
+                        defaults={"answer_text": answer_text},
+                        entity=entity
+                    )
+
+            # إذا كان السؤال متعدد الخيارات أو مجموعة خيارات
+            elif question.question_type in ['multiple_choice', 'radio']:
+                selected_choices = request.POST.getlist(question_key)
+                Answer.objects.filter(survey=survey, question=question).delete()  # حذف الإجابات القديمة
+                for choice_id in selected_choices:
+                    choice = Choice.objects.get(id=choice_id)
+                    Answer.objects.create(
+                        survey=survey,
+                        question=question,
+                        choice_selected=choice,
+                        entity=entity
+                    )
+
+        # إعادة توجيه المستخدم بعد الحفظ
+        return redirect('categories', pk=entity.id)
+
+    return render(request, 'survey/edit_survey.html', {
+        'survey': survey,
+        'questions': questions,
+        'answers': answers,
+    })

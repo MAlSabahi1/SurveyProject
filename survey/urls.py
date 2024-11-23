@@ -3,11 +3,11 @@ from . import views
 
 urlpatterns = [
     path('entity-report/', views.entity_report, name='entity_report'),
-     path('report/question/', views.question_report, name='question_report'),
-     path('answer_report/', views.answer_report, name='answer_report'),
-    #  path('edit_survey/<int:survey_id>', views.edit_survey, name='edit_survey'),
+    path('report/question/', views.question_report, name='question_report'),
+    path('answer_report/', views.answer_report, name='answer_report'),
+    path('edit_survey/<int:survey_id>/', views.edit_survey, name='edit_survey'),
     #  path('update_survey/<int:survey_id>', views.update_survey, name='update_survey'),
-     path('get_choices/<int:question_id>/', views.get_choices, name='get_choices'),
+    path('get_choices/<int:question_id>/', views.get_choices, name='get_choices'),
     path('get_choices/<int:question_id>/', views.get_choices, name='get_choices'),
     path('creates/', views.create_entitys, name='create_entitys'),
     # عرض جميع الاستبيانات حسب التصنيف
