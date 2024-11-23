@@ -1,35 +1,35 @@
-{% extends "base.html" %} {% block title %}الكيانات والقطاعات{% endblock %}
-{%block content %}
-<div class="container mt-5" dir="rtl">
+{% extends "base.html" %} 
+{% block title %}الكيانات والقطاعات{% endblock %}
+{% block content %}
+<div class="container" dir="rtl">
   <!-- Header Section -->
-  <h2 class="text-center mb-4 text-gradient-primary display-5">
-    الكيانات والقطاعات
-  </h2>
+  <div
+    class="card-header bg-gradient text-white text-center rounded-top py-4 mb-4"
+  >
+    <h3 class="mb-0"><i class="fas fa-users"></i> الكيانات والقطاعات</h3>
+  </div>
 
   <!-- Entities Section -->
   <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-    {% for entity in entities %} {% if entity.parent is None %}
-
+    {% for entity in entities %} 
+    {% if entity.parent is None %}
     <div class="col">
       <div
-        class="card h-100 shadow-lg rounded-4 border-0 bg-light"
+        class="card h-100 rounded-4 border-0 bg-light"
         data-aos="fade-up"
         data-aos-duration="1000"
       >
         <div
-          class="card-header text-white d-flex flex-column align-items-start rounded-top"
-          style="
-            background: linear-gradient(45deg, #007bff, #0056b3);
-            padding: 20px;
-          "
+          class="card-header text-white d-flex justify-content-between align-items-center rounded-top"
+          style="background: #5e84ab; padding: 20px;"
         >
-          <h4 class="card-title mb-2 text-truncate" style="font-size: 1.3rem">
+          <h4 class="card-title mb-0 text-truncate" style="font-size: 1.3rem">
             <a href="{% url 'categories' entity.id %}">{{ entity.name }}</a>
           </h4>
           <!-- زر فتح الـ modal -->
           <button
             type="button"
-            class="btn btn-primary"
+            class="btn btn-primary btn-sm"
             data-bs-toggle="modal"
             data-bs-target="#addSectorModal"
             data-entity-id="{{ entity.id }}"
@@ -52,11 +52,12 @@
                 padding: 12px 20px;
               "
             >
-            <a href="{% url 'categories' sector.id %}">
-              <span class="fw-bold text-primary text-truncate"
-                >{{ sector.name }}</span
-              ></a>
-              <i class="fas fa-cogs text-secondary ms-2"></i>
+              <a href="{% url 'categories' sector.id %}">
+                <span class="fw-bold text-primary text-truncate">
+                  {{ sector.name }}
+                </span>
+              </a>
+              <i class="fa-regular fa-building fa-lg"></i>
             </li>
             {% endfor %}
           </ul>
@@ -64,12 +65,10 @@
           <p class="text-muted text-end" style="font-size: 0.9rem">
             لا توجد قطاعات لهذا الكيان.
           </p>
-          {% endif %} {% if entity.sectors.count > 4 %}
+          {% endif %}
+          {% if entity.sectors.count > 4 %}
           <div class="text-center mt-3">
-            <button
-              class="btn btn-primary btn-sm"
-              onclick="toggleSectors(this)"
-            >
+            <button class="btn btn-primary btn-sm" onclick="toggleSectors(this)">
               عرض المزيد
             </button>
           </div>
@@ -77,9 +76,10 @@
         </div>
       </div>
     </div>
-
-    {% endif %} {% endfor %}
+    {% endif %} 
+    {% endfor %}
   </div>
+
   <!-- Modal -->
   <div
     class="modal fade"
@@ -141,6 +141,9 @@
     </div>
   </div>
 
+
+
+
   <!-- Adding AOS Library -->
   <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
@@ -175,7 +178,6 @@
       modalEntityId.value = entityId;
     });
 
-    // إرسال النموذج عبر AJAX
     // إرسال النموذج عبر AJAX
     $("#sectorForm").submit(function (event) {
       event.preventDefault(); // منع النموذج من أن يتم تقديمه بالطريقة المعتادة
@@ -235,17 +237,25 @@
 
   <!-- تحسينات CSS المتقدمة للتصميم -->
   <style>
-    /* إعدادات عامة */
-    body {
-      background-color: #f3f6f9;
-      font-family: "Cairo", sans-serif;
-    }
+    .btn-primary {
+      color: #fff !important;
+      background-color: #57779e !important; 
+      border-color: #ffffff !important;
+  }
 
-    .container {
-      max-width: 90%;
-      margin: auto;
-    }
-
+.btn-primary:hover {
+    color: #fff !important;
+    background-color: #4b6282 !important;
+    border-color: #57779e !important;
+}
+.list-group {
+  display: flex;
+  flex-direction: column;
+  padding-left: 0;
+  padding-right: 0;
+  margin-bottom: 0;
+  border-radius: .25rem;
+}
     /* تدرج لوني للعناوين */
     .text-gradient-primary {
       background: -webkit-linear-gradient(45deg, #007bff, #0056b3);
@@ -261,12 +271,17 @@
       position: relative;
     }
 
-    .card-header {
+    {% comment %} .card-header {
       background: linear-gradient(45deg, #007bff, #0056b3);
       font-size: 1.2rem;
       padding: 15px;
       border-top-left-radius: 15px;
       border-top-right-radius: 15px;
+    } {% endcomment %}
+    .card-header {
+      background-color: #4b6282;
+      color: white;
+      padding: 15px 20px;
     }
 
     .card-body {
@@ -279,10 +294,22 @@
       transform: translateY(-10px);
       box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
     }
-
-    .card-header:hover {
-      background: linear-gradient(45deg, #0056b3, #003366);
+    .card-header a{
+      text-decoration: none;
+      color: #eee;
+      font-weight: bold;
     }
+    .card-body a{
+      text-decoration: none;
+      color: #5e84ab;
+      font-weight: bold;
+    }
+    .card-body span{
+      color: #5e84ab !important;
+    }
+    {% comment %} .card-header:hover {
+      background: linear-gradient(45deg, #0056b3, #003366);
+    } {% endcomment %}
 
     /* تحسين عرض القطاعات */
     .list-group-item {
@@ -427,4 +454,3 @@
     }
   </style>
   {% endblock %}
-</div>

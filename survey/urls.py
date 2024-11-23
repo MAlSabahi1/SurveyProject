@@ -14,8 +14,10 @@ urlpatterns = [
     path('categories/<int:pk>', views.show_categories, name='categories'),
     path('survey/submit/<str:category>/<int:pk>/', views.submit_survey, name='submit_survey'),
     path('survey/<int:survey_id>/', views.show_survey, name='view_survey'),
+    path('delete_survey/<int:survey_id>/<int:entity_id>/', views.delete_survey, name='delete_survey'),
     path('questions/<str:category>/<int:pk>/', views.show_questions_by_category, name='show_questions_by_category'),
-    path('create/', views.create_survey, name='create_survey'),
+    path('questions/<str:category>/<int:pk>/', views.show_questions_by_category, name='show_questions_by_category'),
+    # path('create/', views.create_survey, name='create_survey'),
     # عرض جميع الاستبيانات حسب التصنيف
     # path('surveys/', views.show_surveys, name='show_surveys'),
     # عرض استبيان معين مع الأسئلة والإجابات

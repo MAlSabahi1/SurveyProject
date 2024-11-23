@@ -55,6 +55,7 @@ class Choice(models.Model):
         return self.text
 
 class Surveys(models.Model):
+    name = models.CharField(max_length=255)
     category = models.CharField(max_length=50, choices=Question.CATEGORIES)
     created_at = models.DateTimeField(auto_now_add=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)

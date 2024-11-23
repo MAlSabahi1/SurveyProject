@@ -53,41 +53,48 @@ def show_questions_by_category(request, category, pk):
     })
 
 
-
 @login_required
 def submit_survey(request, category, pk):
     if request.method == 'POST':
+        survey_name = request.POST.get('survey_name')
+
         # جلب الكيان المحدد بناءً على المعرّف (pk)
         entity = get_object_or_404(Entitys, id=pk)
 
         # إنشاء استبيان جديد للمستخدم الحالي
-        survey = Surveys.objects.create(category=category, user=request.user)
-        
+        survey = Surveys.objects.create(category=category, user=request.user, name=survey_name)
+
         # ربط الاستبيان بالكيان المحدد
         survey.entities.add(entity)
 
         # معالجة الإجابات القادمة من الطلب
-        for question_id, answer_values in request.POST.lists():  # استخدام lists() للحصول على القيم المتعددة
-            if question_id.startswith('question_'):
-                question_id = question_id.split('_')[1]
+        for key, value in request.POST.items():
+            if key.startswith('question_'):
+                question_id = key.split('_')[1]
                 question = get_object_or_404(Question, id=question_id)
+
+                # قراءة الملاحظات الخاصة بالسؤال
+                note_key = f"note_{question_id}"
+                note = request.POST.get(note_key, "").strip()
 
                 if question.question_type in ['text', 'yes_no']:
                     # الإجابة النصية أو نعم/لا يتم حفظها مباشرة
                     Answer.objects.create(
                         survey=survey, 
                         question=question, 
-                        answer_text=answer_values[0], 
+                        answer_text=value, 
+                        note=note,  # حفظ الملاحظة
                         entity=entity
                     )
                 elif question.question_type in ['multiple_choice', 'radio']:
                     # حفظ كل خيار كمجموعة إجابة منفصلة
-                    for choice_id in answer_values:
+                    for choice_id in request.POST.getlist(key):
                         choice = Choice.objects.get(id=choice_id)
                         Answer.objects.create(
                             survey=survey, 
                             question=question, 
                             choice_selected=choice, 
+                            note=note,  # حفظ الملاحظة
                             entity=entity
                         )
 
@@ -96,6 +103,22 @@ def submit_survey(request, category, pk):
 
     return HttpResponse("Invalid request", status=400)
 
+
+
+
+@login_required
+def delete_survey(request, survey_id, entity_id):
+    # جلب الاستبيان بناءً على المعرّف
+    survey = get_object_or_404(Surveys, id=survey_id, entities__id=entity_id)
+
+    # حذف الاستبيان
+    survey.delete()
+
+    # إظهار رسالة نجاح
+    messages.success(request, "تم حذف الاستبيان بنجاح.")
+
+    # إعادة التوجيه إلى صفحة عرض التصنيفات
+    return redirect('categories', pk=entity_id)
 
 
 def show_survey(request, survey_id):
@@ -138,22 +161,6 @@ def filter_questions(keywords=None, question_types=None):
     return Question.objects.filter(query)
 
 
-
-@login_required
-@user_passes_test(lambda u: u.is_staff)
-def create_survey(request):
-    if request.method == 'POST':
-        form = SurveyForm(request.POST)
-        if form.is_valid():
-            survey = form.save(commit=False)  # لا نقوم بحفظه بعد
-            survey.created_by = request.user   # تعيين المستخدم الحالي كمنشئ
-            survey.save()                     # حفظه في قاعدة البيانات
-            return JsonResponse({'success': True, 'survey_id': survey.id})  # إعادة الاستجابة بنجاح
-        else:
-            return JsonResponse({'success': False, 'errors': form.errors})  # في حال وجود أخطاء
-    else:
-        form = SurveyForm()
-    return render(request, 'entity/create_survey.html', {'form': form})
 
 
 
