@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="container mt-5">
+    <form method="post" class="row g-3">
+        {% csrf_token %}
+
+        <!-- Title Field -->
+        <div class="col-12">
+            <label for="id_title" class="form-label">Survey Title</label>
+            {{ form.title|add_class:"form-control" }}
+        </div>
+
+        <!-- Description Field -->
+        <div class="col-12">
+            <label for="id_description" class="form-label">Survey Description</label>
+            {{ form.description|add_class:"form-control" }}
+        </div>
+
+        <!-- Entities Multi-Select Field -->
+        <div class="col-md-6">
+            <label for="id_entities" class="form-label">Select Entities</label>
+            <select id="id_entities" name="entities" class="form-select" multiple>
+                {% for entity in form.fields.entities.queryset %}
+                    <option value="{{ entity.id }}" {% if entity in form.instance.entities.all %}selected{% endif %}>
+                        {{ entity.name }}
+                    </option>
+                {% endfor %}
+            </select>
+            <small class="text-muted">Hold down the Ctrl (Windows) or Command (Mac) button to select multiple options.</small>
+        </div>
+
+        <!-- Sectors Multi-Select Field -->
+        <div class="col-md-6">
+            <label for="id_sectors" class="form-label">Select Sectors</label>
+            <select id="id_sectors" name="sectors" class="form-select" multiple>
+                {% for sector in form.fields.sectors.queryset %}
+                    <option value="{{ sector.id }}" {% if sector in form.instance.sectors.all %}selected{% endif %}>
+                        {{ sector.name }}
+                    </option>
+                {% endfor %}
+            </select>
+            <small class="text-muted">Hold down the Ctrl (Windows) or Command (Mac) button to select multiple options.</small>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="col-12 text-center">
+            <button type="submit" class="btn btn-success me-2">Save Changes</button>
+            <a href="{% url 'survey_list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
