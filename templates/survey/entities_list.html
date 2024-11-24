@@ -4,54 +4,90 @@
 {% block title %}قائمة الكيانات{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <h3 class="mb-4">قائمة الكيانات</h3>
-    
-    <!-- جدول عرض الكيانات -->
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                {% comment %} <th>#</th> {% endcomment %}
-                <th>اسم الكيان</th>
-                <th>الوصف</th>
-                <th>الأصل (Parent)</th>
-                <th>الإجراءات</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for entity in entities %}
-            <tr id="entityRow-{{ entity.id }}">
-                <td class="entity-name">{{ entity.name }}</td>
-                <td class="entity-description">{{ entity.description }}</td>
-                <td class="entity-parent">
+<div class="container py-4" dir="rtl">
+  <div class="row">
+    <div class="col-lg-12 order-lg-1">
+      <div
+        class="card-header bg-gradient text-white text-center rounded-top py-4 mb-4"
+      >
+        <h3 class="mb-0"><i class="fas fa-layer-group"></i> قائمة الكيانات</h3>
+      </div>
+      <div class="header__page col-12 d-flex justify-content-between">
+        <!-- قسم البحث -->
+        <div class="col-lg-6 order-lg-1 align-content-center">
+          <div class="search-card rounded d-flex flex-row">
+            <div class="w-100 d-flex justify-content-start">
+              <input
+                type="text"
+                id="searchInput"
+                class="form-control mx-2"
+                style="max-width: 400px"
+                placeholder="ابحث عن الكيان..."
+                oninput="filterTable()"
+              />
+              <button class="btn btn-primary mx-2 px-3">
+                <i class="fa-solid fa-magnifying-glass"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <!-- زر لإضافة كيان جديد -->
+        <div class="col-lg-4 mb-4 order-lg-2 d-flex justify-content-end">
+          <div class="text-center mt-4">
+            <a href="{% url 'create_entitys' %}" class="btn btn-primary btn-lg" style="background-color:#57779E">
+              <i class="fas fa-plus-circle"></i> إضافة كيان جديد
+            </a>
+          </div>
+        </div>
+      </div>
+      <!-- بطاقة عرض الكيانات مع تحسينات -->
+      <div class="card rounded-4 border-0">
+        <div class="card-body">
+          <!-- رأس الجدول يحتوي على العناوين -->
+          <div class="table-responsive">
+            <table id="entityTable" class="table table-striped table-hover">
+              <thead class="thead-dark">
+                <tr>
+                  <th>اسم الكيان</th>
+                  <th>الوصف</th>
+                  <th>الأصل</th>
+                  <th>الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for entity in entities %}
+                <tr id="entityRow-{{ entity.id }}">
+                  <td class="entity-name">{{ entity.name }}</td>
+                  <td class="entity-description">{{ entity.description }}</td>
+                  <td class="entity-parent">
                     {% if entity.parent %}
-                        {{ entity.parent.name }}
+                    {{ entity.parent.name }}
                     {% else %}
-                        بدون
+                    بدون
                     {% endif %}
-                </td>
-                <td>
-                    <button 
-                        class="btn btn-warning btn-sm edit-entity-btn" 
-                        data-id="{{ entity.id }}" 
-                        data-parent-id="{% if entity.parent %}{{ entity.parent.id }}{% else %}{% endif %}">
-                        تعديل
+                  </td>
+                  <td>
+                    <button
+                      class="btn btn-warning btn-sm edit-entity-btn"
+                      data-id="{{ entity.id }}"
+                      data-parent-id="{% if entity.parent %}{{ entity.parent.id }}{% else %}{% endif %}"
+                    >
+                      تعديل
                     </button>
                     <button class="btn btn-danger btn-sm delete-entity-btn" data-id="{{ entity.id }}">
-                        حذف
+                      حذف
                     </button>
-                </td>
-            </tr>
-            
-            {% endfor %}
-        </tbody>
-    </table>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
-{% comment %} data-parent-id="{% if entity.parent %}{{ entity.parent.id }}{% else %}{% endif %}">
- <button class="btn btn-danger btn-sm delete-entity-btn" data-id="{{ entity.id }}">
-                        حذف
-                    </button> {% endcomment %}
-
 <!-- نافذة تعديل الكيان -->
 <div class="modal fade" id="editEntityModal" tabindex="-1" aria-labelledby="editEntityModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -64,47 +100,135 @@
                 <form id="editEntityForm">
                     {% csrf_token %}
                     <input type="hidden" id="editEntityId" name="entity_id" />
-            
+
                     <!-- اسم الكيان -->
                     <div class="mb-3">
                         <label for="editName" class="form-label">اسم الكيان</label>
                         <input type="text" class="form-control" id="editName" name="name" required>
                     </div>
-            
+
                     <!-- وصف الكيان -->
                     <div class="mb-3">
                         <label for="editDescription" class="form-label">الوصف</label>
-                        <textarea class="form-control" id="editDescription" name="description" rows="3"></textarea>
+                        <textarea class="form-control" id="editDescription" name="description"></textarea>
                     </div>
-                    <!-- قائمة الاختيار للكيان الأب -->
+
+                    <!-- الأصل (Parent) -->
                     <div class="mb-3">
-                        <label for="editParent" class="form-label">الكيان الأب</label>
-                        <select class="form-select" id="editParent" name="parent">
-                            <option value="">بدون</option>
-                            {% for parent in parents %}
-                            <option value="{{ parent.id }}">{{ parent.name }}</option>
+                        <label for="editParent" class="form-label">الأصل (Parent)</label>
+                        <select class="form-control" id="editParent" name="parent">
+                            <option value="">بدون أصل</option>
+                            {% for entity in entities %}
+                            <option value="{{ entity.id }}">{{ entity.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
 
-            
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
                         <button type="submit" class="btn btn-primary">حفظ التعديلات</button>
                     </div>
                 </form>
             </div>
-            
         </div>
     </div>
 </div>
-
-<!-- مكتبة Toastr -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
 <!-- مكتبة SweetAlert -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- تحسين التنسيق -->
+<style>
+  .header__page a:hover {
+    background-color: #57779e;
+  }
+  .card-header{
+    background-color: #4b6282;
+  }
+  .card {
+    background: none;
+  }
+  .search-card input {
+    border-radius: 10px;
+    padding: 12px 20px;
+    border: 1.5px solid #dee2e6;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .search-card input:focus {
+    border-color: #4b6282;
+    box-shadow: 0 0 10px rgba(31, 38, 62, 0.3);
+  }
+
+  .search-card button {
+    border-radius: 10px;
+    background-color: #4b6282;
+    color: white;
+    font-size: 1rem;
+    padding: 10px 20px;
+    transition: background-color 0.3s, transform 0.2s;
+  }
+
+  .search-card button:hover {
+    background-color: #39404e;
+    transform: translateY(-2px);
+  }
+
+  /* تحسين الجدول */
+  table.table-striped tbody tr:nth-of-type(odd) {
+    background-color: #f9f9f9;
+  }
+
+  table.table-hover tbody tr:hover {
+    background-color: #e9ecef;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+  }
+
+  .table th,
+  .table td {
+    border: 1px solid #dee2e6;
+    text-align: center;
+    padding: 12px;
+  }
+
+  .table thead th {
+    background-color: #4b6282;
+    color: #fff;
+    font-weight: bold;
+    text-transform: uppercase;
+  }
+</style>
+
+<script>
+  // الاحتفاظ بجميع وظائف JavaScript الأصلية
+  function filterTable() {
+    let input = document.getElementById("searchInput").value.toLowerCase();
+    let table = document.getElementById("entityTable");
+    let rows = table.getElementsByTagName("tr");
+
+    for (let i = 1; i < rows.length; i++) {
+      let cells = rows[i].getElementsByTagName("td");
+      let match = false;
+
+      for (let j = 0; j < cells.length; j++) {
+        if (cells[j]) {
+          if (cells[j].textContent.toLowerCase().indexOf(input) > -1) {
+            match = true;
+            break;
+          }
+        }
+      }
+
+      if (match) {
+        rows[i].style.display = "";
+      } else {
+        rows[i].style.display = "none";
+      }
+    }
+  }
+</script>
 
 <script>
     $(document).ready(function () {
@@ -166,6 +290,7 @@
                             icon: 'success',
                             timer: 1500, // المدة بالمللي ثانية (هنا 3 ثوانٍ)
                             timerProgressBar: true, // عرض شريط تقدم للمؤقت
+                            showConfirmButton: false, // إخفاء زر التأكيد
                         });
                         
                     } else {
@@ -175,6 +300,7 @@
                             icon: 'error',
                             timer: 1500, // المدة بالمللي ثانية (هنا 3 ثوانٍ)
                             timerProgressBar: true, // عرض شريط تقدم للمؤقت
+                            showConfirmButton: false, // إخفاء زر التأكيد
                         });
                     }
                 },
@@ -185,6 +311,7 @@
                         icon: 'error',
                         timer: 1500, // المدة بالمللي ثانية (هنا 3 ثوانٍ)
                         timerProgressBar: true, // عرض شريط تقدم للمؤقت
+                        showConfirmButton: false, // إخفاء زر التأكيد
                     });                }
             });
         });
@@ -228,6 +355,7 @@
                                         icon: 'success',
                                         timer: 1500, // المدة بالمللي ثانية (هنا 3 ثوانٍ)
                                         timerProgressBar: true, // عرض شريط تقدم للمؤقت
+                                        showConfirmButton: false, // إخفاء زر التأكيد
                                     });                                } else {
                                     Swal.fire('خطأ!', 'حدث خطأ أثناء الحذف.', 'error');
                                 }
@@ -239,6 +367,7 @@
                                     icon: 'error',
                                     timer: 1500, // المدة بالمللي ثانية (هنا 3 ثوانٍ)
                                     timerProgressBar: true, // عرض شريط تقدم للمؤقت
+                                    showConfirmButton: false, // إخفاء زر التأكيد
                                 });                            }
                         });
                     }
@@ -249,3 +378,4 @@
     });
 </script>
 {% endblock %}
+

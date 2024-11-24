@@ -6,15 +6,15 @@ from django.forms import ModelForm, Textarea, RadioSelect, CheckboxSelectMultipl
 class EntitysForm(forms.ModelForm):
     class Meta:
         model = Entitys
-        fields = '__all__'  # الحقول التي ستظهر في النموذج
+        fields = ['name','description'] # الحقول التي ستظهر في النموذج
         widgets = {
             'description': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),  # تخصيص واجهة المستخدم للحقل
-            'parent': forms.Select(attrs={'class': 'form-control'}),  # تخصيص واجهة المستخدم للحقل
+            # 'parent': forms.Select(attrs={'class': 'form-control'}),  # تخصيص واجهة المستخدم للحقل
         }
         labels = {
             'name': 'اسم الكيان',
             'description': 'الوصف',
-            'parent': 'القطاع الرئيسي',  # إذا كان الكيان هو قطاع فرعي
+            # 'parent': 'القطاع الرئيسي',  # إذا كان الكيان هو قطاع فرعي
         }
 
 
