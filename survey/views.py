@@ -903,7 +903,9 @@ def question_report(request):
                 {
                     'answer': answer.choice_selected.text if answer.choice_selected else answer.answer_text or "لا توجد إجابة",
                     'entity': answer.entity.name,
-                    'note': answer.note or "-"
+                    'note': answer.note or "-",
+                    'survey': answer.survey.name
+
                 }
                 for answer in answers
             ]
@@ -935,7 +937,8 @@ def answer_report(request):
                 {
                     'name': answer.entity.name,
                     'survey_id': answer.survey.id,  # إذا أردت عرض معرف الاستبيان
-                    'note': answer.note or "-"
+                    'note': answer.note or "-",
+                    'survey': answer.survey.name
                 }
                 for answer in answers
             ]

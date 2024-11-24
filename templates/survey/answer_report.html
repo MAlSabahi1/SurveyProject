@@ -97,7 +97,7 @@
               <thead class="table-dark">
                 <tr>
                   <th>اسم الجهة</th>
-                  <th>معرف الاستبيان</th>
+                  <th>اسم الاستبيان</th>
                   <th>ملاحظات</th>
                 </tr>
               </thead>
@@ -108,7 +108,8 @@
             tableHTML += `
               <tr>
                 <td>${entity.name}</td>
-                <td>${entity.survey_id}</td>
+                <td>${entity.survey}</td>
+                {% comment %} <td>${entity.survey_id}</td> {% endcomment %}
                 <td>${entity.note}</td>
               </tr>
             `;

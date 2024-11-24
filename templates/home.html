@@ -207,8 +207,7 @@
             ).closest(".card-body"); // العثور على البطاقة (card)
             // إضافة القطاع الجديد إلى قائمة القطاعات في البطاقة
             entityCard
-              .find(".list-group")
-              .append(
+              .find(".list-group").append(
                 '<li class="list-group-item">' + response.sector_name + "</li>"
               );
 
@@ -259,7 +258,7 @@
     /* تدرج لوني للعناوين */
     .text-gradient-primary {
       background: -webkit-linear-gradient(45deg, #007bff, #0056b3);
-      -webkit-background-clip: text;
+      /* -webkit-background-clip: text; */
       -webkit-text-fill-color: transparent;
     }
 
@@ -271,13 +270,13 @@
       position: relative;
     }
 
-    {% comment %} .card-header {
+     /* .card-header {
       background: linear-gradient(45deg, #007bff, #0056b3);
       font-size: 1.2rem;
       padding: 15px;
       border-top-left-radius: 15px;
       border-top-right-radius: 15px;
-    } {% endcomment %}
+    }  */
     .card-header {
       background-color: #4b6282;
       color: white;
@@ -307,9 +306,9 @@
     .card-body span{
       color: #5e84ab !important;
     }
-    {% comment %} .card-header:hover {
+    /* {% comment %} .card-header:hover {
       background: linear-gradient(45deg, #0056b3, #003366);
-    } {% endcomment %}
+    } {% endcomment %} */
 
     /* تحسين عرض القطاعات */
     .list-group-item {
