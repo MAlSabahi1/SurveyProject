@@ -222,8 +222,13 @@
                                     row.fadeOut(500, function () {
                                         $(this).remove();
                                     });
-                                    Swal.fire('تم الحذف!', 'تم حذف الكيان بنجاح.', 'success');
-                                } else {
+                                    Swal.fire({
+                                        title: 'تم الحذف!',
+                                        text: 'تم حذف الكيان بنجاح.',
+                                        icon: 'success',
+                                        timer: 1500, // المدة بالمللي ثانية (هنا 3 ثوانٍ)
+                                        timerProgressBar: true, // عرض شريط تقدم للمؤقت
+                                    });                                } else {
                                     Swal.fire('خطأ!', 'حدث خطأ أثناء الحذف.', 'error');
                                 }
                             },
