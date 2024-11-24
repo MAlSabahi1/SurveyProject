@@ -2,6 +2,9 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path('entity_list', views.entity_list, name='entity_list'),
+    path('update_entity/<int:entity_id>/', views.update_entity, name='update_entity'),
+    path('delete_entity/<int:entity_id>/', views.delete_entity, name='delete_entity'),
     path('entity-report/', views.entity_report, name='entity_report'),
     path('report/question/', views.question_report, name='question_report'),
     path('answer_report/', views.answer_report, name='answer_report'),

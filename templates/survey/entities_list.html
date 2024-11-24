@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}قائمة الكيانات{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h3 class="mb-4">قائمة الكيانات</h3>
+    
+    <!-- جدول عرض الكيانات -->
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                {% comment %} <th>#</th> {% endcomment %}
+                <th>اسم الكيان</th>
+                <th>الوصف</th>
+                <th>الأصل (Parent)</th>
+                <th>الإجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entity in entities %}
+            <tr id="entityRow-{{ entity.id }}">
+                <td class="entity-name">{{ entity.name }}</td>
+                <td class="entity-description">{{ entity.description }}</td>
+                <td class="entity-parent">
+                    {% if entity.parent %}
+                        {{ entity.parent.name }}
+                    {% else %}
+                        بدون
+                    {% endif %}
+                </td>
+                <td>
+                    <button 
+                        class="btn btn-warning btn-sm edit-entity-btn" 
+                        data-id="{{ entity.id }}" 
+                        data-parent-id="{% if entity.parent %}{{ entity.parent.id }}{% else %}{% endif %}">
+                        تعديل
+                    </button>
+                    <button class="btn btn-danger btn-sm delete-entity-btn" data-id="{{ entity.id }}">
+                        حذف
+                    </button>
+                </td>
+            </tr>
+            
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% comment %} data-parent-id="{% if entity.parent %}{{ entity.parent.id }}{% else %}{% endif %}">
+ <button class="btn btn-danger btn-sm delete-entity-btn" data-id="{{ entity.id }}">
+                        حذف
+                    </button> {% endcomment %}
+
+<!-- نافذة تعديل الكيان -->
+<div class="modal fade" id="editEntityModal" tabindex="-1" aria-labelledby="editEntityModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editEntityModalLabel">تعديل الكيان</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editEntityForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="editEntityId" name="entity_id" />
+            
+                    <!-- اسم الكيان -->
+                    <div class="mb-3">
+                        <label for="editName" class="form-label">اسم الكيان</label>
+                        <input type="text" class="form-control" id="editName" name="name" required>
+                    </div>
+            
+                    <!-- وصف الكيان -->
+                    <div class="mb-3">
+                        <label for="editDescription" class="form-label">الوصف</label>
+                        <textarea class="form-control" id="editDescription" name="description" rows="3"></textarea>
+                    </div>
+                    <!-- قائمة الاختيار للكيان الأب -->
+                    <div class="mb-3">
+                        <label for="editParent" class="form-label">الكيان الأب</label>
+                        <select class="form-select" id="editParent" name="parent">
+                            <option value="">بدون</option>
+                            {% for parent in parents %}
+                            <option value="{{ parent.id }}">{{ parent.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+            
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                        <button type="submit" class="btn btn-primary">حفظ التعديلات</button>
+                    </div>
+                </form>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<!-- مكتبة Toastr -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
+<!-- مكتبة SweetAlert -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    $(document).ready(function () {
+        // عند النقر على زر تعديل
+        $('.edit-entity-btn').on('click', function () {
+            const entityId = $(this).data('id'); // الحصول على معرف الكيان
+            const row = $(`#entityRow-${entityId}`); // الصف الخاص بالكيان
+        
+            // استخراج القيم مباشرة من الجدول
+            const name = row.find('.entity-name').text().trim();
+            const description = row.find('.entity-description').text().trim();
+            const parentId = $(this).data('parent-id'); // استخدام data-attribute لتخزين معرف الـ parent
+        
+            // تعبئة الحقول في النموذج
+            $('#editEntityId').val(entityId);
+            $('#editName').val(name);
+            $('#editDescription').val(description);
+        
+            // تعيين الكيان الأب في القائمة
+            $('#editParent option').prop('selected', false); // إلغاء تحديد الخيارات
+            if (parentId) {
+                $('#editParent').val(parentId); // تحديد الكيان الأب الحالي
+            } else {
+                $('#editParent').val(''); // إذا لم يكن هناك أب، اجعل الحقل فارغًا
+            }
+        
+            // عرض نافذة التعديل
+            $('#editEntityModal').modal('show');
+        });
+        
+        
+        
+
+        // عند إرسال النموذج
+        $('#editEntityForm').on('submit', function (e) {
+            e.preventDefault();
+        
+            const entityId = $('#editEntityId').val();
+            const formData = $(this).serialize();
+        
+            $.ajax({
+                url: `/update_entity/${entityId}/`,
+                type: 'POST',
+                data: formData,
+                success: function (response) {
+                    if (response.success) {
+                        // تحديث القيم في الجدول
+                        const row = $(`#entityRow-${entityId}`);
+                        row.find('.entity-name').text($('#editName').val());
+                        row.find('.entity-description').text($('#editDescription').val());
+                        const parentText = $('#editParent option:selected').text();
+                        row.find('.entity-parent').text(parentText === 'بدون' ? 'بدون' : parentText);
+        
+                        // إغلاق النافذة وعرض رسالة النجاح
+                        $('#editEntityModal').modal('hide');
+                        Swal.fire({
+                            title: 'تم التعديل!',
+                            text: 'تم تحديث الكيان بنجاح.',
+                            icon: 'success',
+                            timer: 1500, // المدة بالمللي ثانية (هنا 3 ثوانٍ)
+                            timerProgressBar: true, // عرض شريط تقدم للمؤقت
+                        });
+                        
+                    } else {
+                        Swal.fire({
+                            title: 'خطأ!',
+                            text: 'حدث خطأ أثناء التعديل.',
+                            icon: 'error',
+                            timer: 1500, // المدة بالمللي ثانية (هنا 3 ثوانٍ)
+                            timerProgressBar: true, // عرض شريط تقدم للمؤقت
+                        });
+                    }
+                },
+                error: function () {
+                    Swal.fire({
+                        title: 'خطأ!',
+                        text: 'تعذر الاتصال بالخادم. يرجى المحاولة لاحقًا.',
+                        icon: 'error',
+                        timer: 1500, // المدة بالمللي ثانية (هنا 3 ثوانٍ)
+                        timerProgressBar: true, // عرض شريط تقدم للمؤقت
+                    });                }
+            });
+        });
+        
+        
+
+        // حذف الكيان
+        $(document).ready(function () {
+            // وظيفة حذف الكيان
+            $('.delete-entity-btn').on('click', function () {
+                const entityId = $(this).data('id');
+                const row = $(`#entityRow-${entityId}`);
+        
+                // إظهار رسالة تأكيد باستخدام SweetAlert
+                Swal.fire({
+                    title: 'هل أنت متأكد؟',
+                    text: 'هل أنت متأكد أنك تريد حذف هذا الكيان؟',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'نعم، احذف',
+                    cancelButtonText: 'إلغاء',
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // إذا تم تأكيد الحذف
+                        $.ajax({
+                            url: `/delete_entity/${entityId}/`, // استبدل بالرابط الصحيح لحذف الكيان
+                            type: 'POST',
+                            data: {
+                                csrfmiddlewaretoken: '{{ csrf_token }}',
+                            },
+                            success: function (response) {
+                                if (response.success) {
+                                    row.fadeOut(500, function () {
+                                        $(this).remove();
+                                    });
+                                    Swal.fire('تم الحذف!', 'تم حذف الكيان بنجاح.', 'success');
+                                } else {
+                                    Swal.fire('خطأ!', 'حدث خطأ أثناء الحذف.', 'error');
+                                }
+                            },
+                            error: function () {
+                                Swal.fire({
+                                    title: 'خطأ!',
+                                    text: 'تعذر الاتصال بالخادم. يرجى المحاولة لاحقًا.',
+                                    icon: 'error',
+                                    timer: 1500, // المدة بالمللي ثانية (هنا 3 ثوانٍ)
+                                    timerProgressBar: true, // عرض شريط تقدم للمؤقت
+                                });                            }
+                        });
+                    }
+                });
+            });
+        });
+        
+    });
+</script>
+{% endblock %}

@@ -12,7 +12,7 @@ from collections import Counter
 from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.forms.models import model_to_dict
-
+from django.views.decorators.csrf import csrf_exempt
 
 @login_required
 @user_passes_test(lambda u: u.is_staff)
@@ -1004,3 +1004,39 @@ def edit_survey(request, survey_id):
         'questions': questions,
         'answers': answers,
     })
+
+def entity_list(request):
+    entities = Entitys.objects.all()
+    # parents = Entitys.objects.filter(parent) 
+    parents = Entitys.objects.filter(parent__isnull=True) # اختيار الكيانات التي يمكن أن تكون "أب"
+    return render(request, 'survey/entities_list.html', {'entities': entities, 'parents': parents})
+
+@csrf_exempt
+def update_entity(request, entity_id):
+    if request.method == "POST":
+        entity = get_object_or_404(Entitys, id=entity_id)
+
+        # تحديث الحقول
+        entity.name = request.POST.get('name', entity.name)
+        entity.description = request.POST.get('description', entity.description)
+        
+        # تحديث parent (قد يكون None إذا لم يُحدد)
+        parent_id = request.POST.get('parent')
+        if parent_id:
+            parent_entity = get_object_or_404(Entitys, id=parent_id)
+            entity.parent = parent_entity
+        else:
+            entity.parent = None
+
+        entity.save()
+        return JsonResponse({'success': True, 'message': 'تم تحديث الكيان بنجاح!'})
+    return JsonResponse({'success': False, 'message': 'طلب غير صالح'})
+
+
+@csrf_exempt
+def delete_entity(request, entity_id):
+    if request.method == "POST":
+        entity = get_object_or_404(Entitys, id=entity_id)
+        entity.delete()
+        return JsonResponse({'success': True, 'message': 'تم حذف الكيان بنجاح!'})
+    return JsonResponse({'success': False, 'message': 'طلب غير صالح'})  

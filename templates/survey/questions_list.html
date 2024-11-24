@@ -1,0 +1,366 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}قائمة الأسئلة{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h3 class="mb-4">قائمة الأسئلة</h3>
+    <!-- قائمة التصنيفات -->
+    <div class="mb-4">
+        <label for="filterCategory" class="form-label fw-bold">تصفية حسب التصنيف:</label>
+        <select id="filterCategory" class="form-select">
+            <option value="">عرض الكل</option>
+            <option value="staff">الكادر</option>
+            <option value="infrastructure">البنية التحتية</option>
+            <option value="systems">الأنظمة</option>
+        </select>
+    </div>
+    <!-- جدول الأسئلة -->
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>رقم السؤال</th>
+                <th>نص السؤال</th>
+                <th>نوع السؤال</th>
+                <th>التصنيف</th>
+                <th>نشط</th> <!-- إضافة العمود الجديد -->
+                <th>الإجراءات</th>
+            </tr>
+        </thead>
+        <tbody id="questionTableBody">
+            {% for question in questions %}
+            <tr id="questionRow-{{ question.id }}">
+                <td>{{ question.id }}</td>
+                <td>{{ question.text }}</td>
+                <td>{{ question.get_question_type_display }}</td>
+                <td>{{ question.get_category_display }}</td>
+                <td>
+                    {% if question.is_active %}
+                        <span class="badge bg-success">نشط</span>
+                    {% else %}
+                        <span class="badge bg-secondary">غير نشط</span>
+                    {% endif %}
+                </td> <!-- عرض حالة النشط -->
+                <td>
+                    <!-- زر تعديل -->
+                    <button 
+                        class="btn btn-warning btn-sm edit-question-btn" 
+                        data-id="{{ question.id }}" 
+                        data-text="{{ question.text }}" 
+                        data-type="{{ question.question_type }}" 
+                        data-category="{{ question.category }}"
+                        data-active="{{ question.is_active }}">
+                        تعديل
+                    </button>
+                    <!-- زر حذف -->
+                    <button class="btn btn-danger btn-sm delete-question-btn" data-id="{{ question.id }}">
+                        حذف
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- نافذة Modal للتعديل -->
+<div class="modal fade" id="editQuestionModal" tabindex="-1" aria-labelledby="editQuestionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editQuestionModalLabel">تعديل السؤال</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editQuestionForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="editQuestionId" name="question_id" />
+                    
+                    <!-- نص السؤال -->
+                    <div class="mb-3">
+                        <label for="editText" class="form-label">نص السؤال</label>
+                        <input type="text" class="form-control" id="editText" name="text" required>
+                    </div>
+            
+                    <!-- نوع السؤال -->
+                    <div class="mb-3">
+                        <label for="editType" class="form-label">نوع السؤال</label>
+                        <select class="form-select" id="editType" name="question_type" required>
+                            <option value="text">Text</option>
+                            <option value="yes_no">Yes/No</option>
+                            <option value="multiple_choice">Multiple Choice</option>
+                            <option value="radio">Radio Group</option>
+                        </select>
+                    </div>
+            
+                    <!-- التصنيف -->
+                    <div class="mb-3">
+                        <label for="editCategory" class="form-label">التصنيف</label>
+                        <select class="form-select" id="editCategory" name="category" required>
+                            <option value="staff">الكادر</option>
+                            <option value="infrastructure">البنية التحتية</option>
+                            <option value="systems">الأنظمة</option>
+                        </select>
+                    </div>
+            
+                    <!-- قسم الخيارات -->
+                    <div id="editChoicesContainer" style="display: none;">
+                        <h5 class="mt-4">إضافة خيارات</h5>
+                        <div id="editChoices">
+                            <!-- الحقول الديناميكية ستُضاف هنا -->
+                        </div>
+                        <button type="button" id="addEditChoiceBtn" class="btn btn-outline-secondary mt-3">إضافة خيار</button>
+                    </div>
+                    <!-- حالة النشط -->
+                    <div class="mb-3">
+                        <label for="editIsActive" class="form-label">نشط</label>
+                        <select class="form-select" id="editIsActive" name="is_active" required>
+                            <option value="True">نشط</option>
+                            <option value="False">غير نشط</option>
+                        </select>
+                    </div>
+            
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                        <button type="submit" class="btn btn-primary">حفظ التعديلات</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- مكتبة Toastr -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
+
+<script>
+    $(document).ready(function () {
+        // عند تغيير التصنيف في القائمة المنسدلة
+        $('#filterCategory').on('change', function () {
+            const selectedCategory = $(this).val();
+
+            $.ajax({
+                url: "{% url 'questions_list' %}",
+                type: 'GET',
+                data: {
+                    category: selectedCategory
+                },
+                success: function (response) {
+                    if (response.success) {
+                        // إعادة بناء الجدول بالبيانات المفلترة
+                        const tableBody = $('#questionTableBody');
+                        tableBody.empty(); // تفريغ الجدول
+
+                        response.questions.forEach(function (question) {
+                            const row = `
+                                <tr id="questionRow-${question.id}">
+                                    <td>${question.id}</td>
+                                    <td>${question.text}</td>
+                                    <td>${question.question_type}</td>
+                                    <td>${question.category}</td>
+                                    <td>
+                                        <button class="btn btn-danger btn-sm delete-question-btn" data-id="${question.id}">حذف</button>
+                                    </td>
+                                </tr>
+                            `;
+                            tableBody.append(row);
+                        });
+
+                        // إعادة تفعيل زر الحذف بعد التصفية
+                        attachDeleteHandlers();
+                    } else {
+                        toastr.error('حدث خطأ أثناء محاولة التصفية.', '', {
+                            positionClass: 'toast-top-right',
+                            timeOut: 2000,
+                        });
+                    }
+                },
+                error: function () {
+                    toastr.error('تعذر الاتصال بالخادم. يرجى المحاولة لاحقًا.', '', {
+                        positionClass: 'toast-top-right',
+                        timeOut: 2000,
+                    });
+                }
+            });
+        });
+
+        // وظيفة حذف السؤال
+        function attachDeleteHandlers() {
+            $('.delete-question-btn').on('click', function () {
+                const questionId = $(this).data('id');
+                const row = $(`#questionRow-${questionId}`);
+
+                if (confirm('هل أنت متأكد أنك تريد حذف هذا السؤال؟')) {
+                    $.ajax({
+                        url: `/delete_question/${questionId}/`,
+                        type: 'POST',
+                        data: {
+                            csrfmiddlewaretoken: '{{ csrf_token }}',
+                        },
+                        success: function (response) {
+                            if (response.success) {
+                                row.fadeOut(500, function () {
+                                    $(this).remove();
+                                });
+                                toastr.success(response.message, '', {
+                                    positionClass: 'toast-top-right',
+                                    timeOut: 2000,
+                                });
+                            } else {
+                                toastr.error(response.message, '', {
+                                    positionClass: 'toast-top-right',
+                                    timeOut: 2000,
+                                });
+                            }
+                        },
+                        error: function () {
+                            toastr.error('حدث خطأ أثناء محاولة الحذف.', '', {
+                                positionClass: 'toast-top-right',
+                                timeOut: 2000,
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        // تفعيل الحذف عند تحميل الصفحة
+        attachDeleteHandlers();
+    });
+</script>
+
+<script>
+    $(document).ready(function () {
+        let choiceIndex = 0;
+    
+        // عند النقر على زر التعديل
+        $('.edit-question-btn').on('click', function () {
+            const questionId = $(this).data('id');
+            
+            // جلب بيانات السؤال باستخدام AJAX
+            $.ajax({
+                url: `/update_question/${questionId}/`,
+                type: 'GET',
+                success: function (response) {
+                    if (response.success) {
+                        const question = response.question;
+        
+                        // تعبئة النموذج
+                        $('#editQuestionId').val(questionId);
+                        $('#editText').val(question.text);
+                        $('#editType').val(question.question_type);
+                        $('#editCategory').val(question.category);
+                        $('#editIsActive').val(question.is_active ? 'True' : 'False'); // تعبئة حالة النشط
+        
+                        // التعامل مع الخيارات
+                        const choicesContainer = $('#editChoicesContainer');
+                        const choicesDiv = $('#editChoices');
+                        choicesDiv.empty(); // تفريغ الخيارات القديمة
+        
+                        if (question.question_type === 'multiple_choice' || question.question_type === 'radio') {
+                            choicesContainer.show();
+                            if (question.choices.length > 0) {
+                                question.choices.forEach(function (choice) {
+                                    choicesDiv.append(`
+                                        <div class="form-group mb-2">
+                                            <input type="text" name="choices[]" class="form-control" value="${choice}" placeholder="أدخل خياراً">
+                                        </div>
+                                    `);
+                                });
+                            } else {
+                                choicesDiv.append(`
+                                    <div class="form-group mb-2">
+                                        <input type="text" name="choices[]" class="form-control" placeholder="أدخل خياراً">
+                                    </div>
+                                `);
+                            }
+                        } else {
+                            choicesContainer.hide();
+                        }
+        
+                        // عرض الـ Modal
+                        $('#editQuestionModal').modal('show');
+                    }
+                },
+                error: function () {
+                    toastr.error('حدث خطأ أثناء جلب بيانات السؤال. يرجى المحاولة لاحقًا.');
+                }
+            });
+        });
+    
+        // إضافة خيار جديد
+        $('#addEditChoiceBtn').on('click', function () {
+            $('#editChoices').append(`
+                <div class="form-group mb-2">
+                    <input type="text" name="choices[]" class="form-control" placeholder="أدخل خياراً">
+                </div>
+            `);
+        });
+    
+        // عند إرسال النموذج
+        $('#editQuestionForm').on('submit', function (e) {
+            e.preventDefault();
+        
+            const questionId = $('#editQuestionId').val();
+            const formData = $(this).serialize();
+        
+            $.ajax({
+                url: `/update_question/${questionId}/`,
+                type: 'POST',
+                data: formData,
+                success: function (response) {
+                    if (response.success) {
+                        // تحديث بيانات الجدول
+                        const row = $(`#questionRow-${questionId}`);
+                        row.find('td:nth-child(2)').text($('#editText').val());
+                        row.find('td:nth-child(3)').text($('#editType option:selected').text());
+                        row.find('td:nth-child(4)').text($('#editCategory option:selected').text());
+                        row.find('td:nth-child(5)').html($('#editIsActive').val() === 'True' ? 
+                            '<span class="badge bg-success">نشط</span>' : 
+                            '<span class="badge bg-secondary">غير نشط</span>');
+        
+                        // إغلاق الـ Modal وعرض رسالة نجاح
+                        $('#editQuestionModal').modal('hide');
+                        toastr.success(response.message, '', {
+                            positionClass: 'toast-top-right',
+                            timeOut: 2000,
+                        });
+                    } else {
+                        toastr.error(response.message, '', {
+                            positionClass: 'toast-top-right',
+                            timeOut: 2000,
+                        });
+                    }
+                },
+                error: function () {
+                    toastr.error('حدث خطأ أثناء تعديل السؤال. يرجى المحاولة لاحقًا.');
+                }
+            });
+        });
+        // تحديث الخيارات عند تغيير نوع السؤال
+        $('#editType').on('change', function () {
+            const questionType = $(this).val();
+            const choicesContainer = $('#editChoicesContainer');
+            const choicesDiv = $('#editChoices');
+    
+            if (questionType === 'multiple_choice' || questionType === 'radio') {
+                choicesContainer.show();
+                if (choicesDiv.children().length === 0) {
+                    choicesDiv.append(`
+                        <div class="form-group mb-2">
+                            <input type="text" name="choices[]" class="form-control" placeholder="أدخل خياراً">
+                        </div>
+                    `);
+                }
+            } else {
+                choicesContainer.hide();
+                choicesDiv.empty();
+            }
+        });
+    });
+</script>
+{% endblock %}
+
