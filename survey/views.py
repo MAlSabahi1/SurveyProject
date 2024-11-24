@@ -11,6 +11,8 @@ import csv
 from collections import Counter
 from django.db.models import Q
 from django.http import HttpResponseRedirect
+from django.forms.models import model_to_dict
+
 
 @login_required
 @user_passes_test(lambda u: u.is_staff)
@@ -228,6 +230,82 @@ def add_question(request):
         'question_form': question_form,
     })
 
+
+@login_required
+@user_passes_test(is_admin)
+def questions_list(request):
+    if request.method == 'GET':
+        # الحصول على التصنيف إذا تم تحديده
+        category = request.GET.get('category', None)
+        if category:
+            questions = Question.objects.filter(category=category)
+        else:
+            questions = Question.objects.all()
+        
+        # إذا كان الطلب AJAX، إرجاع JSON
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            questions_data = [
+                {
+                    'id': question.id,
+                    'text': question.text,
+                    'question_type': question.get_question_type_display(),
+                    'category': question.get_category_display(),
+                } for question in questions
+            ]
+            return JsonResponse({'success': True, 'questions': questions_data})
+
+        # إذا كان طلب عادي (غير AJAX)، عرض الصفحة
+        return render(request, 'survey/questions_list.html', {'questions': questions})
+
+
+
+# التعديل
+
+@login_required
+@user_passes_test(is_admin)
+def update_question(request, question_id):
+    if request.method == 'POST':
+        question = get_object_or_404(Question, id=question_id)
+        form = QuestionForm(request.POST, instance=question)
+
+        if form.is_valid():
+            # حفظ السؤال المحدث
+            updated_question = form.save()
+
+            # إذا كان نوع السؤال يدعم الخيارات، قم بتحديث الخيارات
+            if updated_question.question_type in ['multiple_choice', 'radio']:
+                updated_question.choices.all().delete()
+                choices = request.POST.getlist('choices[]')
+                for choice_text in choices:
+                    if choice_text.strip():
+                        Choice.objects.create(question=updated_question, text=choice_text)
+
+            return JsonResponse({'success': True, 'message': 'تم تعديل السؤال بنجاح!'})
+        else:
+            return JsonResponse({'success': False, 'message': 'حدث خطأ أثناء تعديل السؤال.', 'errors': form.errors})
+
+    # إذا كان الطلب GET (عرض السؤال وبياناته)
+    question = get_object_or_404(Question, id=question_id)
+    question_data = model_to_dict(question)
+    question_data['choices'] = list(question.choices.values_list('text', flat=True))
+    return JsonResponse({'success': True, 'question': question_data})
+
+
+
+
+# الحذف 
+
+@login_required
+@user_passes_test(is_admin)
+def delete_question(request, question_id):
+    if request.method == 'POST':
+        try:
+            question = Question.objects.get(id=question_id)
+            question.delete()
+            return JsonResponse({'success': True, 'message': 'تم حذف السؤال بنجاح!'})
+        except Question.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'السؤال غير موجود.'})
+    return JsonResponse({'success': False, 'message': 'طلب غير صالح.'})
 
 
 @login_required

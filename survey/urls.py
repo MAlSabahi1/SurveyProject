@@ -24,6 +24,9 @@ urlpatterns = [
     # حذف استبيان معين
     # path('survey/delete/<int:survey_id>/', views.delete_survey, name='delete_survey'),
     path('add-question/', views.add_question, name='add_question'),
+    path('questions-list/', views.questions_list, name='questions_list'),  # الرابط لعرض جدول الأسئلة
+    path('update_question/<int:question_id>/', views.update_question, name='update_question'),
+    path('delete_question/<int:question_id>/', views.delete_question, name='delete_question'),
     path('get_questions/', views.get_questions, name='get_questions'),
     path('lists/', views.survey_list, name='survey_list'),  # Rename to 'survey_list'
     # path('survey/<int:survey_id>/', views.view_survey, name='view_survey'),
