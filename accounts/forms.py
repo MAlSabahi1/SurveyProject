@@ -2,10 +2,6 @@
 from django import forms
 from django.contrib.auth.models import User, Group, Permission
 
-# forms.py
-from django import forms
-from django.contrib.auth.models import User, Group, Permission
-
 class GroupPermissionForm(forms.ModelForm):
     can_add = forms.BooleanField(required=False, label='إضافة')
     can_delete = forms.BooleanField(required=False, label='حذف')
@@ -29,14 +25,16 @@ class UserForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ['username', 'password', 'email', 'groups', 'user_permissions']
+        fields = ['username', 'password', 'email', 'groups', 'user_permissions','is_superuser']
         labels = {
             'username': 'اسم المستخدم',
             'password': 'كلمة المرور',
             'email': 'البريد الإلكتروني',
+            'is_superuser':'Admin',
         }
         widgets = {
             'password': forms.PasswordInput(),
+            # 'is_superuser': forms.CheckboxInput(),
         }
 
     def save(self, commit=True):
