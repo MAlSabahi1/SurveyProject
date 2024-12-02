@@ -314,7 +314,8 @@ def question_report(request):
         question_id = request.POST.get('question_id')
         question = get_object_or_404(Question, id=question_id)
         answers = Answer.objects.filter(question=question).select_related('entity', 'choice_selected')
-
+        # survey = Answer.answers.first()
+        # print(survey)
         # تجهيز البيانات لإرسالها كـ JSON
         data = {
             'question': question.text,
@@ -322,6 +323,7 @@ def question_report(request):
                 {
                     'answer': answer.choice_selected.text if answer.choice_selected else answer.answer_text or "لا توجد إجابة",
                     'entity': answer.entity.name,
+                    'survey': answer.survey.name,
                     'note': answer.note or "-"
                 }
                 for answer in answers
@@ -353,7 +355,7 @@ def answer_report(request):
             'entities': [
                 {
                     'name': answer.entity.name,
-                    'survey_id': answer.survey.id,  # إذا أردت عرض معرف الاستبيان
+                    'survey': answer.survey.name,  # إذا أردت عرض معرف الاستبيان
                     'note': answer.note or "-"
                 }
                 for answer in answers
