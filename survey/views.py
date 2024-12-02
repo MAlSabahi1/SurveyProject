@@ -6,13 +6,15 @@ from django.urls import reverse
 from .models import *
 from .forms import *
 import pandas as pd
-from django.http import HttpResponse, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 import csv
 from collections import Counter
 from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.forms.models import model_to_dict
 from django.views.decorators.csrf import csrf_exempt
+from .utils import encode_id, decode_id
+
 
 @login_required
 @user_passes_test(lambda u: u.is_staff)
@@ -32,36 +34,59 @@ def create_entitys(request):
     return render(request, 'survey/create_entitys.html', {'form': form, 'entities': entities})
 
 
-def show_categories(request,pk):
-    entity = get_object_or_404(Entitys, pk=pk)
-    staff_surveys = Surveys.objects.filter(category='staff',entities = entity)
-    infrastructure_surveys = Surveys.objects.filter(category='infrastructure',entities = entity)
-    systems_surveys = Surveys.objects.filter(category='systems',entities = entity)
-    return render(request, 'survey/categories.html',{
+
+def show_categories(request, pk):
+    # فك تشفير pk
+    entity_id = decode_id(pk)
+    if entity_id is None:
+        raise Http404("Invalid IDrrrr")
+    
+    entity = get_object_or_404(Entitys, pk=entity_id)
+    staff_surveys = Surveys.objects.filter(category='staff', entities=entity)
+    infrastructure_surveys = Surveys.objects.filter(category='infrastructure', entities=entity)
+    systems_surveys = Surveys.objects.filter(category='systems', entities=entity)
+    
+    return render(request, 'survey/categories.html', {
         'entity': entity,
+        'entity_encoded_id': encode_id(entity.id),  # تشفير الـ id للروابط
         'staff_surveys': staff_surveys,
         'infrastructure_surveys': infrastructure_surveys,
         'systems_surveys': systems_surveys,
-        })
-
-def show_questions_by_category(request, category, pk):
-    questions = Question.objects.filter(category=category, is_active=True)
-    entity = get_object_or_404(Entitys, pk=pk)
-    return render(request, 'survey/questions_by_category.html', {
-        'questions': questions,
-        'category': category,
-        'entity': entity,  # إرسال الـ entity إلى القالب
-
     })
 
 
+def show_questions_by_category(request, category, pk):
+    # فك تشفير pk
+    entity_id = decode_id(pk)
+    # print(entity_id)
+    if entity_id is None:
+        raise Http404("Invalid or missing ID")  # إذا كان pk غير صالح
+    
+    # جلب الأسئلة بناءً على الفئة
+    questions = Question.objects.filter(category=category, is_active=True)
+    entity = get_object_or_404(Entitys, pk=entity_id)
+
+    return render(request, 'survey/questions_by_category.html', {
+        'entity_id':pk,
+        'questions': questions,
+        'category': category,
+        'entity': entity,
+    })
+
 @login_required
 def submit_survey(request, category, pk):
+    # print(pk)
+    entity_id = decode_id(pk)
+    # print(entity_id,'kkkkkkkkkkkkkkkkkkkkkkkkkkk')
+    if entity_id is None:
+        raise Http404("Invalid IDiiii")
+    # print(f"Category: {category}, PK: {pk}, Decoded ID: {entity_id}","gggggggggggggggggggggggggggggggggggggggggg")
+    
     if request.method == 'POST':
         survey_name = request.POST.get('survey_name')
 
-        # جلب الكيان المحدد بناءً على المعرّف (pk)
-        entity = get_object_or_404(Entitys, id=pk)
+        # جلب الكيان المحدد بناءً على المعرّف
+        entity = get_object_or_404(Entitys, pk=entity_id)
 
         # إنشاء استبيان جديد للمستخدم الحالي
         survey = Surveys.objects.create(category=category, user=request.user, name=survey_name)
@@ -101,17 +126,22 @@ def submit_survey(request, category, pk):
                         )
 
         # إعادة التوجيه إلى صفحة التصنيفات مع الكيان المحدد
-        return redirect('categories', pk=entity.id)
+        return redirect('categories', pk)
 
     return HttpResponse("Invalid request", status=400)
 
 
 
-
 @login_required
 def delete_survey(request, survey_id, entity_id):
+    # فك تشفير entity_id
+    print(entity_id)
+    decoded_entity_id = decode_id(entity_id)
+    if decoded_entity_id is None:
+        raise Http404("Invalid ID")
+    
     # جلب الاستبيان بناءً على المعرّف
-    survey = get_object_or_404(Surveys, id=survey_id, entities__id=entity_id)
+    survey = get_object_or_404(Surveys, id=survey_id, entities__id=decoded_entity_id)
 
     # حذف الاستبيان
     survey.delete()
@@ -120,7 +150,7 @@ def delete_survey(request, survey_id, entity_id):
     messages.success(request, "تم حذف الاستبيان بنجاح.")
 
     # إعادة التوجيه إلى صفحة عرض التصنيفات
-    return redirect('categories', pk=entity_id)
+    return redirect('categories', entity_id)
 
 
 def show_survey(request, survey_id):
@@ -163,40 +193,6 @@ def filter_questions(keywords=None, question_types=None):
     return Question.objects.filter(query)
 
 
-
-
-
-
-
-@login_required
-def entity_sector_selection(request):
-    entities = Entity.objects.all()
-    sectors = []  # Initialize an empty list for sectors
-
-    selected_entity_id = request.POST.get("entity")
-    selected_sector_id = request.POST.get("sector")
-
-    # Retrieve sectors only if an entity is selected
-    if selected_entity_id:
-        sectors = Sector.objects.filter(entity_id=selected_entity_id)
-
-    surveys = None  # Set surveys to None initially
-
-    if request.method == "POST":
-        if selected_sector_id:
-            # Fetch surveys for the selected sector
-            surveys = Surveys.objects.filter(sector_id=selected_sector_id)
-        elif selected_entity_id:
-            # Fetch surveys for the selected entity that aren't linked to a sector
-            surveys = Surveys.objects.filter(entity_id=selected_entity_id, sector__isnull=True)
-
-    return render(request, 'survey/entity_sector_selection.html', {
-        'entities': entities,
-        'sectors': sectors,
-        'surveys': surveys,
-        'selected_entity_id': selected_entity_id,
-        'selected_sector_id': selected_sector_id,
-    })
 
 
 @login_required
@@ -250,6 +246,8 @@ def questions_list(request):
                     'text': question.text,
                     'question_type': question.get_question_type_display(),
                     'category': question.get_category_display(),
+                    'is_active': question.is_active  # تضمين حالة النشاط هنا
+
                 } for question in questions
             ]
             return JsonResponse({'success': True, 'questions': questions_data})
@@ -306,6 +304,180 @@ def delete_question(request, question_id):
         except Question.DoesNotExist:
             return JsonResponse({'success': False, 'message': 'السؤال غير موجود.'})
     return JsonResponse({'success': False, 'message': 'طلب غير صالح.'})
+
+def question_report(request):
+    if request.method == "GET":
+        questions = Question.objects.all()
+        return render(request, 'survey/question_report.html', {'questions': questions})
+    
+    if request.method == "POST":  # AJAX طلب
+        question_id = request.POST.get('question_id')
+        question = get_object_or_404(Question, id=question_id)
+        answers = Answer.objects.filter(question=question).select_related('entity', 'choice_selected')
+
+        # تجهيز البيانات لإرسالها كـ JSON
+        data = {
+            'question': question.text,
+            'answers': [
+                {
+                    'answer': answer.choice_selected.text if answer.choice_selected else answer.answer_text or "لا توجد إجابة",
+                    'entity': answer.entity.name,
+                    'note': answer.note or "-"
+                }
+                for answer in answers
+            ]
+        }
+        return JsonResponse(data)
+
+
+def answer_report(request):
+    if request.method == "GET":
+        # جلب الأسئلة من الأنواع المحددة فقط
+        questions = Question.objects.filter(question_type__in=["yes_no", "multiple_choice", "radio"])
+        return render(request, 'survey/answer_report.html', {'questions': questions})
+    
+    if request.method == "POST":  # عند اختيار إجابة معينة
+        question_id = request.POST.get('question_id')
+        answer_value = request.POST.get('answer_value')
+        
+        question = get_object_or_404(Question, id=question_id)
+
+        # تصفية الإجابات بناءً على السؤال والإجابة
+        if question.question_type == "yes_no":
+            answers = Answer.objects.filter(question=question, answer_text=answer_value).select_related('entity')
+        else:  # multiple_choice أو radio
+            answers = Answer.objects.filter(question=question, choice_selected__text=answer_value).select_related('entity')
+
+        # تجهيز البيانات لإرسالها
+        data = {
+            'entities': [
+                {
+                    'name': answer.entity.name,
+                    'survey_id': answer.survey.id,  # إذا أردت عرض معرف الاستبيان
+                    'note': answer.note or "-"
+                }
+                for answer in answers
+            ]
+        }
+        return JsonResponse(data)
+
+def get_choices(request, question_id):
+    question = get_object_or_404(Question, id=question_id, question_type__in=["multiple_choice", "radio"])
+    choices = Choice.objects.filter(question=question)
+
+    return JsonResponse({
+        'choices': [{'id': choice.id, 'text': choice.text} for choice in choices]
+    })
+
+def edit_survey(request, survey_id):
+    survey = get_object_or_404(Surveys, id=survey_id)
+    answers = Answer.objects.filter(survey=survey).select_related('question', 'choice_selected')
+    questions = Question.objects.filter(category=survey.category, is_active=True)
+    entity = survey.entities.first() 
+
+    # عند إرسال النموذج
+    if request.method == 'POST':
+        for question in questions:
+            question_key = f"question_{question.id}"
+
+            # إذا كان السؤال من نوع نص
+            if question.question_type == 'text':
+                answer_text = request.POST.get(question_key, "")
+                Answer.objects.update_or_create(
+                    survey=survey,
+                    question=question,
+                    defaults={"answer_text": answer_text},
+                    entity=entity
+
+                )
+
+            # إذا كان السؤال من نوع نعم/لا
+            elif question.question_type == 'yes_no':
+                answer_text = request.POST.get(question_key, None)
+                if answer_text:
+                    Answer.objects.update_or_create(
+                        survey=survey,
+                        question=question,
+                        defaults={"answer_text": answer_text},
+                        entity=entity
+                    )
+
+            # إذا كان السؤال متعدد الخيارات أو مجموعة خيارات
+            elif question.question_type in ['multiple_choice', 'radio']:
+                selected_choices = request.POST.getlist(question_key)
+                Answer.objects.filter(survey=survey, question=question).delete()  # حذف الإجابات القديمة
+                for choice_id in selected_choices:
+                    choice = Choice.objects.get(id=choice_id)
+                    Answer.objects.create(
+                        survey=survey,
+                        question=question,
+                        choice_selected=choice,
+                        entity=entity
+                    )
+        encoded_entity_id = encode_id(entity.id)
+
+        # إعادة توجيه المستخدم بعد الحفظ
+        return redirect('categories', pk=encoded_entity_id)
+
+    return render(request, 'survey/edit_survey.html', {
+        'survey': survey,
+        'questions': questions,
+        'answers': answers,
+    })
+
+
+
+
+def entity_list(request):
+    entities = Entitys.objects.all()
+    # parents = Entitys.objects.filter(parent) 
+    parents = Entitys.objects.filter(parent__isnull=True) # اختيار الكيانات التي يمكن أن تكون "أب"
+    return render(request, 'survey/entities_list.html', {'entities': entities, 'parents': parents})
+
+@csrf_exempt
+def update_entity(request, entity_id):
+    if request.method == "POST":
+        entity = get_object_or_404(Entitys, id=entity_id)
+
+        # تحديث الحقول
+        entity.name = request.POST.get('name', entity.name)
+        entity.description = request.POST.get('description', entity.description)
+        
+        # تحديث parent (قد يكون None إذا لم يُحدد)
+        parent_id = request.POST.get('parent')
+        if parent_id:
+            parent_entity = get_object_or_404(Entitys, id=parent_id)
+            entity.parent = parent_entity
+        else:
+            entity.parent = None
+
+        entity.save()
+        return JsonResponse({'success': True, 'message': 'تم تحديث الكيان بنجاح!'})
+    return JsonResponse({'success': False, 'message': 'طلب غير صالح'})
+
+
+@csrf_exempt
+def delete_entity(request, entity_id):
+    if request.method == "POST":
+        entity = get_object_or_404(Entitys, id=entity_id)
+        entity.delete()
+        return JsonResponse({'success': True, 'message': 'تم حذف الكيان بنجاح!'})
+    return JsonResponse({'success': False, 'message': 'طلب غير صالح'})  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# =---------------------------------------------------------------------------------------------
 
 
 @login_required
@@ -753,86 +925,39 @@ def get_sectors(request):
     return JsonResponse({'sectors': list(sectors)})
 
 
+
 @login_required
 def home(request):
-    # entities = Entitys.objects.prefetch_related('sectors', 'surveys').all()
-    entities = Entitys.objects.all()
-    return render(request, 'home.html', {'entities': entities})
+    user = request.user
 
+    # جلب الكيانات التي يملك المستخدم صلاحية عليها
+    user_permissions = UserEntityPermission.objects.filter(user=user)
+    allowed_entities = [perm.entity for perm in user_permissions]
 
-# views.py
-@login_required
-@user_passes_test(lambda u: u.is_staff)
-def link_survey_to_entity_sector(request, survey_id):
-    survey = get_object_or_404(Surveys, id=survey_id)
-    
-    if request.method == 'POST':
-        form = LinkSurveyForm(request.POST, instance=survey)
-        if form.is_valid():
-            survey = form.save(commit=False)
-            survey.entities.set(form.cleaned_data['entities'])  # Link multiple entities
-            survey.sectors.set(form.cleaned_data['sectors'])    # Link multiple sectors
-            survey.save()
-            return redirect('home')  # Redirect to home or another relevant page
-    else:
-        form = LinkSurveyForm(instance=survey)
-    
-    return render(request, 'survey/link_survey_to_entity_sector.html', {'form': form, 'survey': survey})
+    # تقسيم الكيانات إلى أب وأبناء
+    parent_entities = Entitys.objects.filter(parent__isnull=True, id__in=[e.id for e in allowed_entities])
+    child_entities = Entitys.objects.filter(parent__isnull=False, id__in=[e.id for e in allowed_entities])
 
+    # تشفير المعرفات
+    for entity in parent_entities:
+        entity.encrypted_id = encode_id(entity.id)  # إضافة المعرف المشفر
+        entity.allowed_sectors = entity.sectors.filter(id__in=[e.id for e in allowed_entities])
+        for sector in entity.allowed_sectors:
+            sector.encrypted_id = encode_id(sector.id)  # تشفير معرف القطاع
 
-@login_required
-@user_passes_test(lambda u: u.is_staff)
-def survey_link_list(request):
-    surveys = Surveys.objects.all()  # Fetch all surveys
-    return render(request, 'survey/survey_link_list.html', {'surveys': surveys})
+    for child in child_entities:
+        child.encrypted_id = encode_id(child.id)  # تشفير معرّف الأبناء
+        if child.parent:
+            child.parent_encrypted_id = encode_id(child.parent.id)  # تشفير معرّف الأب
+
+    context = {
+        'parent_entities': parent_entities,
+        'child_entities': child_entities,
+    }
+    return render(request, 'home.html', context)
 
 
 
-# @login_required
-# @user_passes_test(lambda u: u.is_staff)
-# def delete_survey(request, survey_id):
-#     survey = get_object_or_404(Surveys, id=survey_id)
-#     linked_entities = survey.entities.exists()
-#     # linked_sectors = survey.sectors.exists()
-    
-#     if request.method == "POST":
-#         # If linked, show a warning and confirm deletion
-#         if linked_entities or linked_sectors:
-#             messages.warning(
-#                 request, 
-#                 f"Surveys '{survey.title}' is connected to entities or sectors. "
-#                 "Are you sure you want to delete it?"
-#             )
-        
-#         # If confirmed, delete the survey
-#         survey.delete()
-#         messages.success(request, f"Surveys '{survey.title}' deleted successfully.")
-#         return redirect('survey_list_all')
-
-#     return render(request, 'survey/confirm_delete.html', {
-#         'survey': survey,
-#         'linked_entities': linked_entities,
-#         'linked_sectors': linked_sectors,
-#     })
-
-
-# # views.py
-
-# @login_required
-# @user_passes_test(lambda u: u.is_staff)
-# def edit_survey(request, survey_id):
-#     survey = get_object_or_404(Surveys, id=survey_id)
-
-#     if request.method == 'POST':
-#         form = SurveyForm(request.POST, instance=survey)
-#         if form.is_valid():
-#             form.save()
-#             messages.success(request, f"Surveys '{survey.title}' updated successfully.")
-#             return redirect('survey_list_all')
-#     else:
-#         form = SurveyForm(instance=survey)
-
-#     return render(request, 'survey/edit_survey.html', {'form': form, 'survey': survey})
 
 
 
@@ -855,191 +980,4 @@ def update_survey_answers(request, survey_id):
 
     return redirect('view_survey_answers', survey_id=survey_id)
 
-
-def entity_report(request):
-    # Filter questions to include only the desired types
-    allowed_types = ['yes_no', 'multiple_choice', 'radio']
-    questions = Question.objects.filter(question_type__in=allowed_types)
-
-    selected_question = request.GET.get('question')
-    selected_choice = request.GET.get('choice')
-    # print()
-    entities = []
-
-    if selected_question and selected_choice:
-        question = get_object_or_404(Question, id=selected_question)
-
-        if question.question_type == 'yes_no':
-            # Handle Yes/No type
-            entities = Answer.objects.filter(question=question, answer_text=selected_choice).select_related('entity')
-        else:
-            # Handle multiple_choice or radio types
-            choice = get_object_or_404(Choice, id=selected_choice)
-            entities = Answer.objects.filter(question=question, choice_selected=choice).select_related('entity')
-
-    context = {
-        'questions': questions,
-        'selected_question': selected_question,
-        'selected_choice': selected_choice,
-        'entities': [answer.entity for answer in entities],
-    }
-    return render(request, 'survey/entity_report.html', context)
-
     
-def question_report(request):
-    if request.method == "GET":
-        questions = Question.objects.all()
-        return render(request, 'survey/question_report.html', {'questions': questions})
-    
-    if request.method == "POST":  # AJAX طلب
-        question_id = request.POST.get('question_id')
-        question = get_object_or_404(Question, id=question_id)
-        answers = Answer.objects.filter(question=question).select_related('entity', 'choice_selected')
-
-        # تجهيز البيانات لإرسالها كـ JSON
-        data = {
-            'question': question.text,
-            'answers': [
-                {
-                    'answer': answer.choice_selected.text if answer.choice_selected else answer.answer_text or "لا توجد إجابة",
-                    'entity': answer.entity.name,
-                    'note': answer.note or "-",
-                    'survey': answer.survey.name
-
-                }
-                for answer in answers
-            ]
-        }
-        return JsonResponse(data)
-
-
-def answer_report(request):
-    if request.method == "GET":
-        # جلب الأسئلة من الأنواع المحددة فقط
-        questions = Question.objects.filter(question_type__in=["yes_no", "multiple_choice", "radio"])
-        return render(request, 'survey/answer_report.html', {'questions': questions})
-    
-    if request.method == "POST":  # عند اختيار إجابة معينة
-        question_id = request.POST.get('question_id')
-        answer_value = request.POST.get('answer_value')
-        
-        question = get_object_or_404(Question, id=question_id)
-
-        # تصفية الإجابات بناءً على السؤال والإجابة
-        if question.question_type == "yes_no":
-            answers = Answer.objects.filter(question=question, answer_text=answer_value).select_related('entity')
-        else:  # multiple_choice أو radio
-            answers = Answer.objects.filter(question=question, choice_selected__text=answer_value).select_related('entity')
-
-        # تجهيز البيانات لإرسالها
-        data = {
-            'entities': [
-                {
-                    'name': answer.entity.name,
-                    'survey_id': answer.survey.id,  # إذا أردت عرض معرف الاستبيان
-                    'note': answer.note or "-",
-                    'survey': answer.survey.name
-                }
-                for answer in answers
-            ]
-        }
-        return JsonResponse(data)
-
-def get_choices(request, question_id):
-    question = get_object_or_404(Question, id=question_id, question_type__in=["multiple_choice", "radio"])
-    choices = Choice.objects.filter(question=question)
-
-    return JsonResponse({
-        'choices': [{'id': choice.id, 'text': choice.text} for choice in choices]
-    })
-
-def edit_survey(request, survey_id):
-    survey = get_object_or_404(Surveys, id=survey_id)
-    answers = Answer.objects.filter(survey=survey).select_related('question', 'choice_selected')
-    questions = Question.objects.filter(category=survey.category, is_active=True)
-    entity = survey.entities.first() 
-
-    # عند إرسال النموذج
-    if request.method == 'POST':
-        for question in questions:
-            question_key = f"question_{question.id}"
-
-            # إذا كان السؤال من نوع نص
-            if question.question_type == 'text':
-                answer_text = request.POST.get(question_key, "")
-                Answer.objects.update_or_create(
-                    survey=survey,
-                    question=question,
-                    defaults={"answer_text": answer_text},
-                    entity=entity
-
-                )
-
-            # إذا كان السؤال من نوع نعم/لا
-            elif question.question_type == 'yes_no':
-                answer_text = request.POST.get(question_key, None)
-                if answer_text:
-                    Answer.objects.update_or_create(
-                        survey=survey,
-                        question=question,
-                        defaults={"answer_text": answer_text},
-                        entity=entity
-                    )
-
-            # إذا كان السؤال متعدد الخيارات أو مجموعة خيارات
-            elif question.question_type in ['multiple_choice', 'radio']:
-                selected_choices = request.POST.getlist(question_key)
-                Answer.objects.filter(survey=survey, question=question).delete()  # حذف الإجابات القديمة
-                for choice_id in selected_choices:
-                    choice = Choice.objects.get(id=choice_id)
-                    Answer.objects.create(
-                        survey=survey,
-                        question=question,
-                        choice_selected=choice,
-                        entity=entity
-                    )
-
-        # إعادة توجيه المستخدم بعد الحفظ
-        return redirect('categories', pk=entity.id)
-
-    return render(request, 'survey/edit_survey.html', {
-        'survey': survey,
-        'questions': questions,
-        'answers': answers,
-    })
-
-def entity_list(request):
-    entities = Entitys.objects.all()
-    # parents = Entitys.objects.filter(parent) 
-    parents = Entitys.objects.filter(parent__isnull=True) # اختيار الكيانات التي يمكن أن تكون "أب"
-    return render(request, 'survey/entities_list.html', {'entities': entities, 'parents': parents})
-
-@csrf_exempt
-def update_entity(request, entity_id):
-    if request.method == "POST":
-        entity = get_object_or_404(Entitys, id=entity_id)
-
-        # تحديث الحقول
-        entity.name = request.POST.get('name', entity.name)
-        entity.description = request.POST.get('description', entity.description)
-        
-        # تحديث parent (قد يكون None إذا لم يُحدد)
-        parent_id = request.POST.get('parent')
-        if parent_id:
-            parent_entity = get_object_or_404(Entitys, id=parent_id)
-            entity.parent = parent_entity
-        else:
-            entity.parent = None
-
-        entity.save()
-        return JsonResponse({'success': True, 'message': 'تم تحديث الكيان بنجاح!'})
-    return JsonResponse({'success': False, 'message': 'طلب غير صالح'})
-
-
-@csrf_exempt
-def delete_entity(request, entity_id):
-    if request.method == "POST":
-        entity = get_object_or_404(Entitys, id=entity_id)
-        entity.delete()
-        return JsonResponse({'success': True, 'message': 'تم حذف الكيان بنجاح!'})
-    return JsonResponse({'success': False, 'message': 'طلب غير صالح'})  

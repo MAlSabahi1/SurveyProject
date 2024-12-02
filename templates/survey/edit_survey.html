@@ -1,28 +1,30 @@
 {% extends "base.html" %}
 {% load custom_filters %}
+
 {% block title %}تعديل الاستبيان{% endblock %}
 {% block content %}
 <div class="container" dir="rtl">
-  <!-- عنوان الصفحة -->
+  <!-- Title Section -->
   <div class="card-header bg-gradient text-white text-center rounded-top py-4 mb-4">
     <h3 class="text-center mb-0" style="color: #2c3e50; font-weight: bold; letter-spacing: 0.05em">
       <i class="fa-regular fa-circle-question"></i> تعديل الاستبيان
     </h3>
   </div>
 
-  <!-- نموذج تعديل الاستبيان -->
-  <form method="post">
+  <!-- Survey Form -->
+  <form method="post" id="survey-form">
     {% csrf_token %}
     <div class="row g-4">
       {% for question in questions %}
       <div class="col-md-6">
         <div class="card border-0 shadow-sm h-100">
           <div class="card-body p-4">
+            <!-- Question Label -->
             <h5 class="card-title mb-3" style="font-size: 1.1rem; color: #34495e; font-weight: bold">
-              {{ question.text }}
+              {{ forloop.counter }}. {{ question.text }}
             </h5>
 
-            <!-- سؤال نصي -->
+            <!-- Question Field Based on Type -->
             {% if question.question_type == 'text' %}
             <input
               type="text"
@@ -31,8 +33,6 @@
               class="form-control p-3 border-1 shadow-sm rounded-3"
               placeholder="أدخل إجابتك هنا"
             />
-
-            <!-- سؤال نعم/لا -->
             {% elif question.question_type == 'yes_no' %}
             <div class="form-check">
               <input
@@ -56,10 +56,7 @@
               />
               <label class="form-check-label" for="no_{{ question.id }}">لا</label>
             </div>
-
-            <!-- سؤال متعدد الخيارات -->
             {% elif question.question_type == 'multiple_choice' or question.question_type == 'radio' %}
-            {% comment %} {% elif question.question_type in ['multiple_choice', 'radio'] %} {% endcomment %}
             {% for choice in question.choices.all %}
             <div class="form-check">
               <input
@@ -80,9 +77,126 @@
       {% endfor %}
     </div>
 
+    <!-- Submit Button -->
     <div class="text-center mt-5">
-      <button type="submit" class="btn btn-primary btn-lg px-5 py-3">حفظ التعديلات</button>
+      <button type="submit" class="btn btn-primary btn-lg px-5 py-3" style="background-color: #3498db; border: none; border-radius: 50px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);">
+        حفظ التعديلات
+      </button>
     </div>
   </form>
+
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+  // عرض رسالة تأكيد أولاً
+  const form = document.getElementById('survey-form');
+  form.addEventListener('submit', function(event) {
+    event.preventDefault();  // منع إرسال النموذج مباشرة
+
+    // عرض رسالة تأكيد أولاً
+    Swal.fire({
+      title: 'هل أنت متأكد؟',
+      text: 'لن تتمكن من التراجع عن هذا التعديل!',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'نعم، حفظ التعديلات',
+      cancelButtonText: 'إلغاء',
+      confirmButtonColor: '#3498db',
+      cancelButtonColor: '#d33'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // بعد التأكيد عرض رسالة الحفظ
+        Swal.fire({
+          icon: 'success',
+          title: 'تم حفظ التعديلات!',
+          text: 'لقد تم حفظ التعديلات بنجاح.',
+          showConfirmButton: false, // إخفاء زر "موافق"
+          timer: 1500  // الرسالة تختفي بعد ثانية ونصف
+        }).then(function() {
+          form.submit();  // إرسال النموذج بعد اختفاء الرسالة
+        });
+      } else {
+        // في حالة إلغاء الحذف، لا يحدث شيء
+        Swal.fire({
+          icon: 'info',
+          title: 'تم الإلغاء',
+          text: 'لم يتم حفظ التعديلات.',
+          showConfirmButton: false,
+          timer: 1500
+        });
+      }
+    });
+  });
+</script>
+
+
+<style>
+  /* Title styling */
+  h3 {
+    color: #fff !important;
+  }
+
+  /* Card styling */
+  .card {
+    background-color: #fff;
+    border-radius: 15px;
+    transition: transform 0.2s ease-in-out;
+    border: none;
+  }
+
+  .card-header {
+    background-color: #4b6282;
+    color: white;
+    padding: 15px 20px;
+  }
+
+  .card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  }
+
+  .form-control {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    font-size: 1rem;
+  }
+
+  .form-check-input {
+    transform: scale(1.2);
+  }
+
+  .form-check-label {
+    font-size: 1rem;
+    color: #2c3e50;
+  }
+
+  .btn-primary {
+    background-color: #3498db;
+    border: none;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    transition: transform 0.2s;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-5px);
+  }
+</style>
+
+<script>
+  // Show the toast notification after form submission
+  const form = document.getElementById('survey-form');
+  form.addEventListener('submit', function(event) {
+    event.preventDefault();  // Prevent the form from submitting immediately
+    const toast = new bootstrap.Toast(document.getElementById('toast-message'));
+    toast.show();  // Show the toast message
+
+    // Delay form submission to allow the toast to appear
+    setTimeout(function() {
+      form.submit(); // Submit the form after toast is displayed
+    }, 1500); // Adjust the timeout to match the toast display duration
+  });
+</script>
+
 {% endblock %}

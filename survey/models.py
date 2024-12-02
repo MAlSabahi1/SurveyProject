@@ -1,9 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import User
-from django.db import models
-from django.contrib.auth.models import User
-
-from django.db import models
 
 
 class Entitys(models.Model):
@@ -13,6 +9,13 @@ class Entitys(models.Model):
     
     def __str__(self):
         return self.name
+
+class UserEntityPermission(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="entity_permissions")
+    entity = models.ForeignKey(Entitys, on_delete=models.CASCADE, related_name="user_permissions")
+
+    def __str__(self):
+        return f"{self.user.username} - {self.entity.name}"
 
 
 # class Survey(models.Model):

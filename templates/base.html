@@ -2,6 +2,10 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="تطبيق الاستبيان لإدارة الأسئلة والكيانات بسهولة" />
+    <meta name="keywords" content="استبيان, إدارة الأسئلة, تقارير, لوحة المستخدم, تطبيق" />
+    <meta name="author" content="Your Organization" />
     <title>{% block title %}تطبيق الاستبيان{% endblock %}</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}" />
@@ -12,10 +16,6 @@
     />
     <link
       href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdn.jsdelivr.net/npm/sweetalert2@11.5.0/dist/sweetalert2.min.css"
       rel="stylesheet"
     />
     <link
@@ -31,73 +31,97 @@
         font-family: "Cairo", sans-serif !important;
         background-color: #f5f6fa;
         margin: 0;
+        overflow-x: hidden;
+        color: #333;
       }
 
-      /* تعديل لون الشريط الجانبي مع تأثير مدرج */
+      /* الشريط الجانبي */
       .sidebar {
         position: fixed;
         top: 0;
         right: 0;
         width: 260px;
         height: 100vh;
-        background: linear-gradient(
-          145deg,
-          #405168,
-          #4B6282
-        
-        ); /* تأثير مدرج من نفس اللون */
+        background: linear-gradient(145deg, #283e56, #3b5166);
         color: #fff;
         padding: 20px;
         transition: all 0.3s ease;
         z-index: 999;
         box-shadow: 3px 0 15px rgba(0, 0, 0, 0.1);
         border-radius: 0 8px 8px 0;
-        min-height: 100vh;
+      }
+
+      .sidebar-content {
+        height: calc(100% - 50px);
+        overflow-y: auto;
+        scrollbar-width: none;
+      }
+
+      .sidebar-content::-webkit-scrollbar {
+        display: none;
       }
 
       .sidebar h5 {
-        font-size: 1.8em;
+        font-size: 1.8rem;
         color: #f1faee;
         text-align: center;
         margin-bottom: 30px;
+        font-weight: bold;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
       }
 
-      /* تعديل الألوان للأيقونات والنصوص */
+      .sidebar h6 {
+        font-size: 1.4rem;
+        color: #f1faee;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin: 20px 0 10px;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.4);
+        padding-bottom: 6px;
+        text-align: center;
+        /* background: rgba(255, 255, 255, 0.1); */
+        border-radius: 8px;
+        /* box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); */
+      }
+
       .sidebar a {
         display: flex;
         align-items: center;
         padding: 14px 18px;
-        color: #a8dadc; /* لون الخط الفاتح */
+        color: #a8dadc;
         text-decoration: none;
         font-size: 1.1rem;
         border-radius: 8px;
-        transition: background-color 0.3s, color 0.3s, transform 0.2s;
+        position: relative;
+        transition: all 0.3s ease;
       }
 
       .sidebar a i {
         margin-left: 15px;
         font-size: 1.4em;
         transition: transform 0.2s;
-        color: #f1faee; /* جعل الأيقونات بلون فاتح */
+        color: #f1faee;
       }
 
-      /* تغيير لون الأيقونات والنصوص عند المرور عليها */
+      /* تأثير الزجاج عند التمرير */
       .sidebar a:hover {
-        background-color: #2c3e50;
+        background: rgba(255, 255, 255, 0.15);
         color: #ffffff;
-        transform: translateX(5px);
+        transform: translateX(10px);
+        box-shadow: 0 8px 15px rgba(255, 255, 255, 0.2), 0 4px 6px rgba(0, 0, 0, 0.2);
+        backdrop-filter: blur(8px);
       }
 
       .sidebar a:hover i {
-        transform: rotate(15deg);
-        color: #ffffff; /* تغيير لون الأيقونات عند التمرير */
+        transform: rotate(20deg);
+        color: #ffffff;
       }
 
-      /* تمييز الرابط النشط */
       .sidebar a.active {
-        background-color: #2c3e50;
+        background: rgba(255, 255, 255, 0.2);
         color: #ffffff;
         font-weight: bold;
+        box-shadow: inset 2px 2px 8px rgba(0, 0, 0, 0.3);
       }
 
       .sidebar .separator {
@@ -106,7 +130,11 @@
       }
 
       .sidebar.collapsed {
-        width: 80px;
+        width: 100px;
+      }
+
+      .sidebar.collapsed h6 {
+        display: none;
       }
 
       .sidebar.collapsed a {
@@ -127,30 +155,33 @@
         margin-right: 260px;
         padding: 20px;
         transition: margin-right 0.3s;
+        background: #fff;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
       }
 
       .content.collapsed {
         margin-right: 80px;
       }
 
-      /* زر التصغير في الأعلى بشكل احترافي */
+      /* زر التصغير */
       .sidebar-toggle-btn {
-        background-color: #4b6282;
+        background-color: #3b5166;
         color: #fff;
         font-size: 1.6rem;
-        padding: 0px 10px;
+        padding: 8px 12px;
         border: none;
         border-radius: 5%;
         cursor: pointer;
         position: absolute;
-        top: 20px; /* جعل الزر في أعلى الشريط الجانبي */
-        left: -30px; /* وضعه في الزاوية العلوية اليمنى */
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        top: 20px;
+        left: -35px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
         transition: background-color 0.3s, transform 0.2s;
       }
 
       .sidebar-toggle-btn:hover {
-        background-color: #364665;
+        background-color: #2c3e50;
         color: #fff;
         transform: scale(1.1);
       }
@@ -163,80 +194,40 @@
         font-size: 1.4rem;
       }
 
-      /* تحسين الشكل بشكل عام */
-      .sidebar,
-      .sidebar a,
-      .sidebar-toggle-btn {
-        line-height: 1.5;
+      /* تحسينات مرئية */
+      a:hover {
+        text-decoration: none;
       }
 
-      .sidebar h5 {
-        font-size: 1.8rem;
-        margin-bottom: 20px;
-      }
-      /* زر تشغيل Overlay */
-      .overlay-btn {
-        position: relative;
-        top: 20px;
-        right: 20px;
-        z-index: 1000;
-        padding: 10px 20px;
-        background-color: #4b6282;
-        color: #fff;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: background-color 0.3s;
+      a:focus {
+        outline: none;
       }
 
-      .overlay-btn:hover {
-        background-color: #364665;
-      }
+      @media (max-width: 768px) {
+        /* .sidebar {
+          width: 100%;
+          height: auto;
+          position: relative;
+          border-radius: 0;
+          padding: 10px 0;
+        } */
 
-      /* تصميم الشاشة الكاملة */
-      .overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background-color: rgba(0, 0, 0, 0.2);
-        color: white;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-        transition: opacity 0.3s ease;
-      }
+        .content {
+          margin-right: 0;
+          padding: 10px;
+        }
 
-      /* محتوى الشاشة الكاملة */
-      .overlay-content {
-        text-align: center;
-        background-color: #2c3e50;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-      }
+        /* .sidebar.collapsed {
+          width: auto;
+        } */
 
-      /* زر إغلاق الشاشة */
-      .overlay-close-btn {
-        margin-top: 15px;
-        padding: 10px 20px;
-        background-color: #e74c3c;
-        color: #fff;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: background-color 0.3s;
-      }
+        .sidebar.collapsed a {
+          justify-content: center;
+        }
 
-      .overlay-close-btn:hover {
-        background-color: #c0392b;
-      }
-
-      /* إخفاء الـ Overlay افتراضيًا */
-      .hidden {
-        display: none;
+        .sidebar-toggle-btn {
+          display: block;
+        }
       }
     </style>
   </head>
@@ -246,103 +237,79 @@
       <button id="overlayBtn" class="sidebar-toggle-btn">
         <i class="fas fa-arrow-left"></i>
       </button>
-      <h5 id="sidebarTitle">لوحة الاستبيان</h5>
-      <button id="overlayTrigger" class="overlay-btn">
-        عرض الشاشة الكاملة
-      </button>
-      <div id="overlay" class="overlay hidden">
-        <div class="overlay-content">
-          {% comment %} <h2>المحتوى داخل الشاشة الكاملة</h2> {% endcomment %}
-          <button id="closeOverlay" class="overlay-close-btn">إغلاق</button>
-        </div>
+      <h5 id="sidebarTitle">لوحة التحكم</h5>
+      <div class="sidebar-content">
+        <a href="{% url 'home' %}" class="active">
+          <i class="fas fa-home"></i><span>الرئيسية</span>
+        </a>
+        <h6>إدارة الاسئلة</h6>
+        <a href="{% url 'add_question' %}">
+          <i class="fas fa-plus-circle"></i><span>إضافة سؤال</span>
+        </a>
+        <a href="{% url 'questions_list' %}">
+          <i class="fas fa-list"></i><span>عرض جميع الأسئلة</span>
+        </a>
+        <h6>إدارة الكيانات</h6>
+        <a href="{% url 'create_entitys' %}">
+          <i class="fas fa-building"></i><span>إنشاء كيان جديد</span>
+        </a>
+        <a href="{% url 'entity_list' %}">
+          <i class="fas fa-list-alt"></i><span>عرض جميع الكيانات</span>
+        </a>
+        <h6>تقارير</h6>
+        {% if user.is_authenticated and user.is_staff %}
+        <a href="{% url 'answer_report' %}">
+          <i class="fas fa-chart-bar"></i><span>تقرير بحسب الإجابة</span>
+        </a>
+        <a href="{% url 'question_report' %}">
+          <i class="fas fa-chart-pie"></i><span>تقرير بحسب السؤال</span>
+        </a>
+        {% endif %}
+        <h6>إدارة المستخدمين</h6>
+        <a href="{% url 'create_user' %}">
+          <i class="fas fa-user-plus"></i><span>إنشاء مستخدم جديد</span>
+        </a>
+        <a href="{% url 'group_list' %}">
+          <i class="fas fa-users"></i><span>المجموعات</span>
+        </a>
+        <a href="{% url 'user_list' %}">
+          <i class="fas fa-user"></i><span>المستخدمين</span>
+        </a>
+        <a href="{% url 'logout' %}">
+          <i class="fas fa-sign-out-alt"></i><span>تسجيل الخروج</span>
+        </a>        
       </div>
-
-      <a href="{% url 'home' %}" class="active">
-        <i class="fas fa-home"></i><span>الرئيسية</span>
-      </a>
-      <div class="separator"></div>
-      <a href="{% url 'add_question' %}">
-        <i class="fas fa-plus-circle"></i><span>إضافة سؤال</span>
-      </a>
-      <a href="{% url 'questions_list' %}">عرض جميع الأسئلة</a>
-      <a href="{% url 'create_entitys' %}">
-        <i class="fas fa-building"></i><span>إنشاء كيان جديد</span>
-      </a>
-      <a href="{% url 'entity_list' %}">عرض جميع الكيان</a>
-      <div class="separator"></div>
-      <h6>تقارير</h6>
-      {% if user.is_authenticated and user.is_staff %}
-      <a href="{% url 'answer_report' %}">
-        <i class="fas fa-chart-bar"></i><span>تقرير بحسب الإجابة</span>
-      </a>
-      <a href="{% url 'question_report' %}">
-        <i class="fas fa-chart-bar"></i><span>تقرير بحسب السؤال</span>
-      </a>
-      {% endif %}
-      <div class="separator"></div>
-      <a href="{% url 'create_user' %}">
-        <i class="fas fa-user-plus"></i><span>إنشاء مستخدم جديد</span>
-      </a>
-      <a href="{% url 'group_list' %}">
-        <i class="fa-solid fa-users"></i><span>المجموعات</span>
-      </a>
-      <a href="{% url 'user_list' %}">
-        <i class="fa-solid fa-user"></i><span>المستخدمين</span>
-      </a>
-      <a href="{% url 'logout' %}">
-        <i class="fas fa-sign-out-alt"></i><span>تسجيل الخروج</span>
-      </a>
     </div>
     {% endif %}
 
     <div class="content" id="content">{% block content %}{% endblock %}</div>
     <script>
       document.addEventListener("DOMContentLoaded", () => {
-        const overlay = document.getElementById("overlay");
-        const overlayTrigger = document.getElementById("overlayTrigger");
-        const closeOverlay = document.getElementById("closeOverlay");
+        const sidebar = document.getElementById("sidebar");
+        const content = document.getElementById("content");
+        const sidebarToggleBtn = document.getElementById("overlayBtn");
+        const sidebarTitle = document.getElementById("sidebarTitle");
 
-        // عرض الـ Overlay
-        overlayTrigger.addEventListener("click", () => {
-          overlay.classList.remove("hidden");
-        });
+        if (localStorage.getItem("sidebarCollapsed") === "true") {
+          sidebar.classList.add("collapsed");
+          content.classList.add("collapsed");
+          sidebarTitle.style.display = "none";
+        }
 
-        // إغلاق الـ Overlay
-        closeOverlay.addEventListener("click", () => {
-          overlay.classList.add("hidden");
+        sidebarToggleBtn.addEventListener("click", function () {
+          sidebar.classList.toggle("collapsed");
+          content.classList.toggle("collapsed");
+          sidebarTitle.style.display = sidebar.classList.contains("collapsed")
+            ? "none"
+            : "block";
+
+          localStorage.setItem(
+            "sidebarCollapsed",
+            sidebar.classList.contains("collapsed")
+          );
         });
       });
     </script>
-    <!-- Load Bootstrap JS and custom script -->
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
-    <script>
-      // استرجاع حالة الشريط الجانبي من localStorage
-      const sidebar = document.getElementById("sidebar");
-      const content = document.getElementById("content");
-      const sidebarToggleBtn = document.getElementById("overlayBtn");
-      const sidebarTitle = document.getElementById("sidebarTitle");
-
-      // التحقق من حالة الشريط الجانبي عند تحميل الصفحة
-      if (localStorage.getItem("sidebarCollapsed") === "true") {
-        sidebar.classList.add("collapsed");
-        content.classList.add("collapsed");
-        sidebarTitle.style.display = "none"; // إخفاء اسم "لوحة الاستبيان" عند التصغير
-      }
-
-      sidebarToggleBtn.addEventListener("click", function () {
-        // تغيير حالة الشريط الجانبي
-        sidebar.classList.toggle("collapsed");
-        content.classList.toggle("collapsed");
-        sidebarTitle.style.display = sidebar.classList.contains("collapsed")
-          ? "none"
-          : "block";
-
-        // حفظ حالة الشريط الجانبي في localStorage
-        localStorage.setItem(
-          "sidebarCollapsed",
-          sidebar.classList.contains("collapsed")
-        );
-      });
-    </script>
   </body>
 </html>

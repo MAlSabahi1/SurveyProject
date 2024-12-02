@@ -11,41 +11,39 @@
 
   <!-- Entities Section -->
   <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-    {% for entity in parent_entities %}
+    {% for entity in entities %} 
+    {% comment %} {% if entity.parent is None %} {% endcomment %}
     <div class="col">
       <div
         class="card h-100 rounded-4 border-0 bg-light"
         data-aos="fade-up"
         data-aos-duration="1000"
       >
-        <!-- Header -->
         <div
           class="card-header text-white d-flex justify-content-between align-items-center rounded-top"
           style="background: #5e84ab; padding: 20px;"
         >
           <h4 class="card-title mb-0 text-truncate" style="font-size: 1.3rem">
-            <a href="{% url 'categories' entity.encrypted_id %}">{{ entity.name }}</a>
+            <a href="{% url 'categories' entity.encoded_id %}">{{ entity.name }}</a>
           </h4>
-          <!-- زر إضافة قطاع -->
+          <!-- زر فتح الـ modal -->
           <button
             type="button"
             class="btn btn-primary btn-sm"
             data-bs-toggle="modal"
             data-bs-target="#addSectorModal"
-            data-entity-id="{{ entity.encrypted_id }}"
+            data-entity-id="{{ entity.id }}"
           >
             إضافة قطاع
           </button>
         </div>
-  
-        <!-- Body -->
         <div class="card-body" style="background-color: #f8f9fa; padding: 20px">
-          {% if entity.allowed_sectors %}
+          {% if entity.sectors.all %}
           <ul
             class="list-group list-group-flush"
             style="max-height: 150px; overflow-y: auto"
           >
-            {% for sector in entity.allowed_sectors %}
+            {% for sector in child_permissions %}
             <li
               class="list-group-item text-end border-0 d-flex justify-content-between align-items-center"
               style="
@@ -54,11 +52,9 @@
                 padding: 12px 20px;
               "
             >
-              <a href="{% url 'categories' sector.encrypted_id %}">
-                <span class="fw-bold text-primary text-truncate">
-                  {{ sector.name }}
-                </span>
-              </a>
+            <a href="{% url 'categories' sector.encoded_id %}">
+              <span class="fw-bold text-primary text-truncate">{{ sector.name }}</span>
+          </a>
               <i class="fa-regular fa-building fa-lg"></i>
             </li>
             {% endfor %}
@@ -68,53 +64,17 @@
             لا توجد قطاعات لهذا الكيان.
           </p>
           {% endif %}
+          {% if entity.sectors.count > 4 %}
+          <div class="text-center mt-3">
+            <button class="btn btn-primary btn-sm" onclick="toggleSectors(this)">
+              عرض المزيد
+            </button>
+          </div>
+          {% endif %}
         </div>
       </div>
     </div>
-    {% endfor %}
-  
-    {% for child in child_entities %}
-    <div class="col">
-      <div
-        class="card h-100 rounded-4 border-0 bg-light"
-        data-aos="fade-up"
-        data-aos-duration="1000"
-      >
-        <!-- Header -->
-        <div
-          class="card-header text-white rounded-top"
-          style="background: #5e84ab; padding: 20px;"
-        >
-          <h4 class="card-title mb-0 text-truncate" style="font-size: 1.3rem">
-            {{ child.parent.name }}
-          </h4>
-        </div>
-  
-        <!-- Body -->
-        <div class="card-body" style="background-color: #f8f9fa; padding: 20px">
-          <ul
-            class="list-group list-group-flush"
-            style="max-height: 150px; overflow-y: auto"
-          >
-            <li
-              class="list-group-item text-end border-0 d-flex justify-content-between align-items-center"
-              style="
-                background-color: #f7f7f7;
-                color: #495057;
-                padding: 12px 20px;
-              "
-            >
-              <a href="{% url 'categories' child.encrypted_id %}">
-                <span class="fw-bold text-primary text-truncate">
-                  {{ child.name }}
-                </span>
-              </a>
-              <i class="fa-regular fa-building fa-lg"></i>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </div>
+    {% comment %} {% endif %}  {% endcomment %}
     {% endfor %}
   </div>
 
@@ -245,8 +205,7 @@
             ).closest(".card-body"); // العثور على البطاقة (card)
             // إضافة القطاع الجديد إلى قائمة القطاعات في البطاقة
             entityCard
-              .find(".list-group")
-              .append(
+              .find(".list-group").append(
                 '<li class="list-group-item">' + response.sector_name + "</li>"
               );
 
@@ -297,7 +256,7 @@
     /* تدرج لوني للعناوين */
     .text-gradient-primary {
       background: -webkit-linear-gradient(45deg, #007bff, #0056b3);
-      -webkit-background-clip: text;
+      /* -webkit-background-clip: text; */
       -webkit-text-fill-color: transparent;
     }
 
@@ -309,13 +268,13 @@
       position: relative;
     }
 
-    {% comment %} .card-header {
+     /* .card-header {
       background: linear-gradient(45deg, #007bff, #0056b3);
       font-size: 1.2rem;
       padding: 15px;
       border-top-left-radius: 15px;
       border-top-right-radius: 15px;
-    } {% endcomment %}
+    }  */
     .card-header {
       background-color: #4b6282;
       color: white;
@@ -345,9 +304,9 @@
     .card-body span{
       color: #5e84ab !important;
     }
-    {% comment %} .card-header:hover {
+    /* {% comment %} .card-header:hover {
       background: linear-gradient(45deg, #0056b3, #003366);
-    } {% endcomment %}
+    } {% endcomment %} */
 
     /* تحسين عرض القطاعات */
     .list-group-item {

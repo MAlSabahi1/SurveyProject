@@ -1,12 +1,14 @@
 from django.urls import path
 from django.contrib.auth.views import LogoutView
+
+
 from . import views
 
 
 urlpatterns = [
     path("signup/", views.SignUpView.as_view(), name="signup"),
     path('user/create/', views.create_user, name='create_user'),
-    path('user/<int:user_id>/edit/', views.edit_user, name='edit_user'),
+    path('user/<int:user_id>/edit/', views.editUsers, name='edit_user'),
     path('user/list/', views.user_list, name='user_list'),  # Add this line for user list
     path('group/create/', views.create_group, name='create_group'),
     path('group/<int:group_id>/edit/', views.edit_group, name='edit_group'),
